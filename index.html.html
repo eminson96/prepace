@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PrepAce">
+<meta name="theme-color" content="#0a0a0a">
+<title>PrepAce — AI Interview Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg: #080b0f;
+  --surface: #111418;
+  --surface2: #181d23;
+  --border: rgba(255,255,255,0.07);
+  --accent: #4fffb0;
+  --accent2: #ff6b4a;
+  --gold: #f5c842;
+  --text: #eef0f3;
+  --muted: #6b7280;
+  --muted2: #9ca3af;
+  --danger: #ff4a6b;
+  --r: 14px;
+}
+html, body { height:100%; overflow:hidden; background:var(--bg); }
+body {
+  font-family: 'Instrument Sans', sans-serif;
+  color: var(--text);
+  display: flex; flex-direction: column;
+  max-width: 430px; margin: 0 auto;
+  position: relative;
+}
+
+/* SCREENS */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateX(20px);
+}
+.screen.active {
+  opacity: 1; pointer-events: all;
+  transform: translateX(0);
+}
+.screen.exit {
+  opacity: 0; transform: translateX(-20px);
+}
+
+/* SCROLLABLE BODY */
+.scroll-body {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-body::-webkit-scrollbar { display: none; }
+
+/* ── ONBOARDING ── */
+#screen-onboarding {
+  background: var(--bg);
+  justify-content: space-between;
+  padding: 0;
+}
+.onboard-top {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 3rem 2rem 2rem;
+  position: relative; overflow: hidden;
+}
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
+  animation: drift 8s ease-in-out infinite;
+}
+.orb1 { width:280px; height:280px; background:var(--accent); top:-80px; right:-60px; }
+.orb2 { width:200px; height:200px; background:#6b6bff; bottom:20px; left:-40px; animation-delay:-3s; }
+@keyframes drift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50% { transform: translate(10px,-15px) scale(1.05); }
+}
+.logo-mark {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: linear-gradient(135deg, var(--accent), #00d4ff);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800;
+  color: var(--bg); margin-bottom: 2rem;
+  box-shadow: 0 0 40px rgba(79,255,176,0.3);
+  position: relative; z-index: 1;
+}
+.onboard-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 2.4rem; font-weight: 800;
+  line-height: 1.1; text-align: center;
+  position: relative; z-index: 1;
+}
+.onboard-title span { color: var(--accent); }
+.onboard-sub {
+  margin-top: 1rem; text-align: center;
+  color: var(--muted2); font-size: 0.95rem; line-height: 1.6;
+  font-weight: 300; position: relative; z-index: 1; max-width: 300px;
+}
+.trust-pills {
+  display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center;
+  margin-top: 2rem; position: relative; z-index: 1;
+}
+.pill {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 100px; padding: 0.35rem 0.9rem;
+  font-size: 0.75rem; color: var(--muted2); font-weight: 400;
+}
+.pill span { color: var(--accent); font-weight: 600; }
+.onboard-bottom {
+  padding: 1.5rem 1.5rem 2.5rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+}
+.onboard-bottom h3 {
+  font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+  margin-bottom: 1rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem;
+}
+.role-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+.chip {
+  padding: 0.5rem 1rem; border-radius: 100px;
+  border: 1px solid var(--border); background: var(--surface2);
+  font-size: 0.82rem; color: var(--muted2); cursor: pointer;
+  transition: all 0.15s; font-weight: 400;
+}
+.chip:active { transform: scale(0.96); }
+.chip.selected {
+  background: var(--accent); color: var(--bg);
+  border-color: var(--accent); font-weight: 600;
+}
+.btn-main {
+  width: 100%; padding: 1rem; border-radius: var(--r);
+  background: var(--accent); color: var(--bg);
+  font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+  border: none; cursor: pointer; transition: all 0.15s;
+  letter-spacing: 0.02em;
+}
+.btn-main:active { transform: scale(0.98); opacity: 0.9; }
+.btn-main:disabled { opacity: 0.4; }
+.btn-ghost {
+  width: 100%; padding: 0.85rem; border-radius: var(--r);
+  background: transparent; color: var(--muted2);
+  font-size: 0.9rem; font-weight: 400; border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.15s; margin-top: 0.75rem;
+}
+.btn-ghost:active { background: var(--surface2); }
+
+/* ── HOME ── */
+#screen-home { background: var(--bg); }
+.home-header {
+  padding: 3.5rem 1.5rem 1rem;
+  background: linear-gradient(to bottom, var(--surface), transparent);
+}
+.home-header-top { display: flex; justify-content: space-between; align-items: center; }
+.greeting { font-size: 0.82rem; color: var(--muted); font-weight: 400; }
+.home-name {
+  font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800;
+  margin-top: 0.1rem;
+}
+.avatar-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #00d4ff);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 800;
+  color: var(--bg); border: none; cursor: pointer;
+}
+.streak-bar {
+  display: flex; align-items: center; gap: 0.8rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 0.9rem 1.1rem; margin-top: 1.2rem;
+}
+.streak-icon { font-size: 1.3rem; }
+.streak-text { flex: 1; }
+.streak-label { font-size: 0.72rem; color: var(--muted); }
+.streak-val { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: var(--gold); }
+.streak-badges { display: flex; gap: 3px; }
+.streak-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border);
+}
+.streak-dot.done { background: var(--gold); }
+
+.section-label {
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 0.8rem;
+}
+.home-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* QUICK START CARD */
+.quick-card {
+  background: linear-gradient(135deg, #0d1f17, #0a1510);
+  border: 1px solid rgba(79,255,176,0.15);
+  border-radius: 18px; padding: 1.5rem;
+  position: relative; overflow: hidden; cursor: pointer;
+  transition: transform 0.15s;
+}
+.quick-card:active { transform: scale(0.98); }
+.quick-card::after {
+  content: ''; position: absolute;
+  top: -40px; right: -40px;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(79,255,176,0.12), transparent 70%);
+}
+.quick-label { font-size: 0.72rem; color: var(--accent); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.quick-title { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; margin-top: 0.3rem; line-height: 1.2; }
+.quick-sub { font-size: 0.82rem; color: var(--muted2); margin-top: 0.4rem; }
+.quick-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.2rem; }
+.quick-meta { font-size: 0.78rem; color: var(--muted); }
+.quick-go {
+  background: var(--accent); color: var(--bg);
+  border: none; border-radius: 100px; padding: 0.5rem 1.2rem;
+  font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700;
+  cursor: pointer;
+}
+
+/* CATEGORY GRID */
+.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.cat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.2rem 1rem;
+  cursor: pointer; transition: all 0.15s;
+}
+.cat-card:active { transform: scale(0.97); border-color: var(--accent); }
+.cat-emoji { font-size: 1.6rem; margin-bottom: 0.6rem; }
+.cat-name { font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; }
+.cat-count { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+
+/* RECENT SESSIONS */
+.session-item {
+  display: flex; align-items: center; gap: 1rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1rem;
+  cursor: pointer; transition: all 0.15s;
+}
+.session-item:active { transform: scale(0.98); }
+.session-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--surface2); display: flex; align-items: center;
+  justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+}
+.session-info { flex: 1; }
+.session-name { font-size: 0.9rem; font-weight: 500; }
+.session-meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+.session-score {
+  font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+  color: var(--accent);
+}
+
+/* BOTTOM NAV */
+.bottom-nav {
+  display: flex; background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 0.6rem 0 1.2rem;
+  flex-shrink: 0;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 0.25rem; background: none; border: none; cursor: pointer;
+  padding: 0.4rem 0; transition: all 0.15s;
+}
+.nav-icon { font-size: 1.3rem; opacity: 0.4; transition: all 0.2s; }
+.nav-label { font-size: 0.62rem; color: var(--muted); font-weight: 500; letter-spacing: 0.04em; }
+.nav-btn.active .nav-icon { opacity: 1; transform: scale(1.1); }
+.nav-btn.active .nav-label { color: var(--accent); }
+
+/* ── INTERVIEW SETUP ── */
+#screen-setup { background: var(--bg); }
+.setup-header {
+  padding: 3.5rem 1.5rem 1.5rem;
+  display: flex; align-items: center; gap: 1rem;
+}
+.back-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; cursor: pointer; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.back-btn:active { transform: scale(0.93); }
+.setup-title { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; }
+.setup-body { padding: 0 1.5rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.field-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.6rem; }
+.input-field {
+  width: 100%; padding: 0.9rem 1.1rem; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); font-family: 'Instrument Sans', sans-serif; font-size: 0.95rem;
+  outline: none; transition: border-color 0.2s;
+}
+.input-field:focus { border-color: var(--accent); }
+.input-field::placeholder { color: var(--muted); }
+select.input-field { appearance: none; cursor: pointer; }
+.level-pills { display: flex; gap: 0.5rem; }
+.level-pill {
+  flex: 1; padding: 0.7rem 0.5rem; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--surface);
+  text-align: center; font-size: 0.82rem; color: var(--muted2);
+  cursor: pointer; transition: all 0.15s; font-weight: 500;
+}
+.level-pill:active { transform: scale(0.96); }
+.level-pill.selected { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 700; }
+.type-pills { display: flex; gap: 0.5rem; flex-direction: column; }
+.type-pill {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.9rem 1.1rem; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; transition: all 0.15s;
+}
+.type-pill:active { transform: scale(0.98); }
+.type-pill.selected { border-color: var(--accent); background: rgba(79,255,176,0.05); }
+.type-pill-icon { font-size: 1.2rem; }
+.type-pill-text { flex: 1; }
+.type-pill-name { font-size: 0.9rem; font-weight: 500; }
+.type-pill-desc { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
+.type-pill-check { font-size: 0.9rem; opacity: 0; transition: opacity 0.15s; }
+.type-pill.selected .type-pill-check { opacity: 1; color: var(--accent); }
+.setup-footer { padding: 1rem 1.5rem 2.5rem; }
+
+/* ── INTERVIEW SESSION ── */
+#screen-session { background: var(--bg); }
+.session-header {
+  padding: 3.2rem 1.5rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.session-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.session-role { font-size: 0.78rem; color: var(--accent); font-weight: 600; }
+.session-end {
+  font-size: 0.78rem; color: var(--muted); border: 1px solid var(--border);
+  background: none; padding: 0.3rem 0.8rem; border-radius: 100px;
+  cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.session-end:active { background: var(--danger); color: white; border-color: var(--danger); }
+.progress-wrap { display: flex; align-items: center; gap: 0.8rem; }
+.progress-track {
+  flex: 1; height: 4px; background: var(--border); border-radius: 100px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--accent); border-radius: 100px;
+  transition: width 0.6s ease;
+}
+.progress-text { font-size: 0.72rem; color: var(--muted); flex-shrink: 0; }
+
+.chat-area {
+  flex: 1; overflow-y: auto; padding: 1.2rem;
+  display: flex; flex-direction: column; gap: 1rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.chat-area::-webkit-scrollbar { display: none; }
+
+.msg { display: flex; flex-direction: column; max-width: 88%; animation: msgIn 0.25s ease both; }
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.msg.ai { align-self: flex-start; }
+.msg.user { align-self: flex-end; }
+.msg-sender { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.3rem; color: var(--muted); }
+.msg.ai .msg-sender { color: var(--accent); }
+.msg-bubble {
+  padding: 0.9rem 1.1rem; border-radius: 18px;
+  font-size: 0.9rem; line-height: 1.65;
+}
+.msg.ai .msg-bubble {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px 18px 18px 18px; color: var(--text);
+}
+.msg.user .msg-bubble {
+  background: var(--accent); color: var(--bg); font-weight: 500;
+  border-radius: 18px 4px 18px 18px;
+}
+
+/* FEEDBACK CARD */
+.feedback-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.1rem; margin-top: 0.3rem;
+  max-width: 90%; align-self: flex-start;
+  animation: msgIn 0.25s ease both;
+}
+.feedback-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+.score-row2 { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+.score-name { font-size: 0.75rem; color: var(--muted2); width: 70px; flex-shrink: 0; }
+.score-track2 { flex: 1; height: 5px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.score-bar2 { height: 100%; border-radius: 100px; transition: width 0.8s ease; }
+.score-num { font-size: 0.75rem; font-weight: 700; width: 28px; text-align: right; }
+.feedback-tip { font-size: 0.82rem; color: var(--muted2); line-height: 1.6; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--border); }
+.feedback-tip strong { color: var(--text); }
+
+/* TYPING INDICATOR */
+.typing-bubble {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px 18px 18px 18px;
+  padding: 0.9rem 1.1rem; display: flex; gap: 4px; align-items: center;
+  max-width: 80px; align-self: flex-start;
+}
+.typing-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted); animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* INPUT AREA */
+.input-area {
+  padding: 0.8rem 1rem 2rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.input-row { display: flex; gap: 0.6rem; align-items: flex-end; }
+.answer-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 18px; padding: 0.75rem 1rem;
+  color: var(--text); font-family: 'Instrument Sans', sans-serif; font-size: 0.9rem;
+  outline: none; resize: none; min-height: 44px; max-height: 120px;
+  line-height: 1.5; transition: border-color 0.2s;
+}
+.answer-input:focus { border-color: rgba(79,255,176,0.4); }
+.answer-input::placeholder { color: var(--muted); }
+.send-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0; transition: all 0.15s;
+}
+.send-btn:active { transform: scale(0.93); }
+.send-btn:disabled { opacity: 0.35; }
+.hint-text { font-size: 0.7rem; color: var(--muted); text-align: center; margin-bottom: 0.5rem; }
+
+/* ── RESULTS ── */
+#screen-results { background: var(--bg); }
+.results-header { padding: 3.5rem 1.5rem 1.5rem; text-align: center; }
+.results-emoji { font-size: 3rem; margin-bottom: 0.8rem; }
+.results-title { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; }
+.results-sub { font-size: 0.9rem; color: var(--muted2); margin-top: 0.4rem; }
+.big-score {
+  font-family: 'Syne', sans-serif; font-size: 5rem; font-weight: 800;
+  line-height: 1; margin: 1.5rem 0 0.3rem;
+}
+.score-label { font-size: 0.8rem; color: var(--muted); }
+.results-body { padding: 1rem 1.5rem 2rem; display: flex; flex-direction: column; gap: 1.2rem; }
+.result-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 1.3rem;
+}
+.result-section-title { font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 1rem; }
+.breakdown-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
+.breakdown-label { font-size: 0.82rem; flex: 1; }
+.breakdown-track { width: 80px; height: 6px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.breakdown-fill { height: 100%; border-radius: 100px; background: var(--accent); }
+.breakdown-score { font-size: 0.82rem; font-weight: 700; width: 30px; text-align: right; }
+.insight-item { display: flex; gap: 0.8rem; margin-bottom: 0.8rem; align-items: flex-start; }
+.insight-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.insight-text { font-size: 0.85rem; color: var(--muted2); line-height: 1.5; }
+.results-footer { padding: 0 1.5rem 3rem; display: flex; flex-direction: column; gap: 0.75rem; }
+
+/* ── PAYWALL ── */
+#screen-paywall { background: var(--bg); }
+.paywall-header {
+  padding: 3.5rem 1.5rem 1.5rem; text-align: center;
+  background: linear-gradient(to bottom, rgba(79,255,176,0.04), transparent);
+}
+.paywall-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+.paywall-title { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800; line-height: 1.15; }
+.paywall-sub { font-size: 0.9rem; color: var(--muted2); margin-top: 0.6rem; font-weight: 300; }
+.plan-cards { padding: 1rem 1.5rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.plan-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 1.3rem; cursor: pointer;
+  transition: all 0.2s; position: relative; overflow: hidden;
+}
+.plan-card.featured { border-color: var(--accent); background: rgba(79,255,176,0.04); }
+.plan-badge {
+  position: absolute; top: 0; right: 0;
+  background: var(--accent); color: var(--bg);
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 0.3rem 0.8rem; border-radius: 0 18px 0 12px;
+}
+.plan-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
+.plan-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+.plan-price { text-align: right; }
+.plan-amount { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; }
+.plan-period { font-size: 0.72rem; color: var(--muted); }
+.plan-features2 { display: flex; flex-direction: column; gap: 0.4rem; }
+.plan-feat { font-size: 0.8rem; color: var(--muted2); display: flex; gap: 0.5rem; align-items: center; }
+.plan-feat::before { content: '✓'; color: var(--accent); font-weight: 700; font-size: 0.75rem; }
+.paywall-footer { padding: 1rem 1.5rem 3rem; }
+.restore-link { text-align: center; margin-top: 1rem; font-size: 0.78rem; color: var(--muted); cursor: pointer; }
+
+/* API KEY SETUP */
+.api-setup {
+  background: var(--surface); border: 1px solid rgba(79,255,176,0.2);
+  border-radius: 16px; padding: 1.2rem; margin: 0 1.5rem 1rem;
+}
+.api-setup p { font-size: 0.8rem; color: var(--muted2); line-height: 1.6; margin-bottom: 0.8rem; }
+.api-setup a { color: var(--accent); text-decoration: none; }
+
+/* UTILITY */
+.mt1 { margin-top: 0.5rem; }
+.hidden { display: none !important; }
+.center { text-align: center; }
+.text-accent { color: var(--accent); }
+.text-muted { color: var(--muted); }
+
+/* LOADING */
+.loading-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 999; transition: opacity 0.4s;
+}
+.loading-logo { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: var(--accent); }
+.loading-sub { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
+.spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite; margin-top: 2rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 0.6rem 1.2rem;
+  font-size: 0.82rem; color: var(--text); white-space: nowrap;
+  opacity: 0; transition: all 0.3s; z-index: 500; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loading">
+  <div class="loading-logo">PrepAce</div>
+  <div class="loading-sub">AI Interview Coach</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SCREEN 1: ONBOARDING -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="screen active" id="screen-onboarding">
+  <div class="onboard-top">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="logo-mark">P</div>
+    <h1 class="onboard-title">Ace your<br><span>next interview</span></h1>
+    <p class="onboard-sub">AI-powered practice sessions with real-time feedback. Built for serious job seekers.</p>
+    <div class="trust-pills">
+      <div class="pill"><span>94%</span> get more callbacks</div>
+      <div class="pill"><span>12k+</span> sessions coached</div>
+      <div class="pill">Free to start</div>
+    </div>
+  </div>
+  <div class="onboard-bottom">
+    <h3>I'm preparing for</h3>
+    <div class="role-chips" id="roleChips">
+      <div class="chip selected" data-role="Software Engineer">💻 Software Engineer</div>
+      <div class="chip" data-role="Product Manager">📦 Product Manager</div>
+      <div class="chip" data-role="Data Scientist">📊 Data Scientist</div>
+      <div class="chip" data-role="Designer">🎨 Designer</div>
+      <div class="chip" data-role="Marketing">📣 Marketing</div>
+      <div class="chip" data-role="Sales">💼 Sales</div>
+      <div class="chip" data-role="Finance">💰 Finance</div>
+      <div class="chip" data-role="Other">✨ Other</div>
+    </div>
+    <!-- API Key Input -->
+    <div class="api-setup">
+      <p>🔑 Enter your <a href="https://console.anthropic.com/account/keys" target="_blank">Anthropic API key</a> to power the AI coach. It's stored only in your browser — never sent anywhere except Anthropic.</p>
+      <input type="password" class="input-field" id="apiKeyInput" placeholder="sk-ant-api03-..." style="font-family:'DM Mono',monospace;font-size:0.82rem;">
+    </div>
+    <button class="btn-main" id="startBtn" onclick="goHome()">Start Practicing →</button>
+    <button class="btn-ghost" onclick="goHome()">Continue without AI (demo mode)</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SCREEN 2: HOME -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-home">
+  <div class="scroll-body">
+    <div class="home-header">
+      <div class="home-header-top">
+        <div>
+          <div class="greeting">Good morning 👋</div>
+          <div class="home-name" id="homeTitle">Ready to practice?</div>
+        </div>
+        <button class="avatar-btn" onclick="navigate('screen-paywall')">P</button>
+      </div>
+      <div class="streak-bar">
+        <div class="streak-icon">🔥</div>
+        <div class="streak-text">
+          <div class="streak-label">Practice streak</div>
+          <div class="streak-val">3-day streak</div>
+        </div>
+        <div class="streak-badges">
+          <div class="streak-dot done"></div>
+          <div class="streak-dot done"></div>
+          <div class="streak-dot done"></div>
+          <div class="streak-dot"></div>
+          <div class="streak-dot"></div>
+          <div class="streak-dot"></div>
+          <div class="streak-dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="home-body">
+      <!-- Quick Start -->
+      <div>
+        <div class="section-label">Quick Start</div>
+        <div class="quick-card" onclick="navigate('screen-setup')">
+          <div class="quick-label">⚡ Recommended for you</div>
+          <div class="quick-title" id="quickTitle">Behavioral Interview<br>Practice</div>
+          <div class="quick-sub">Tailored to your role · 5 questions · ~15 min</div>
+          <div class="quick-footer">
+            <div class="quick-meta">🎯 Last score: 78/100</div>
+            <button class="quick-go">Start →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div>
+        <div class="section-label">Interview Types</div>
+        <div class="cat-grid">
+          <div class="cat-card" onclick="setType('Behavioral');navigate('screen-setup')">
+            <div class="cat-emoji">🧠</div>
+            <div class="cat-name">Behavioral</div>
+            <div class="cat-count">STAR method · Most common</div>
+          </div>
+          <div class="cat-card" onclick="setType('Technical');navigate('screen-setup')">
+            <div class="cat-emoji">💻</div>
+            <div class="cat-name">Technical</div>
+            <div class="cat-count">Role-specific skills</div>
+          </div>
+          <div class="cat-card" onclick="setType('Case Study');navigate('screen-setup')">
+            <div class="cat-emoji">📋</div>
+            <div class="cat-name">Case Study</div>
+            <div class="cat-count">Problem solving</div>
+          </div>
+          <div class="cat-card" onclick="setType('Culture Fit');navigate('screen-setup')">
+            <div class="cat-emoji">🤝</div>
+            <div class="cat-name">Culture Fit</div>
+            <div class="cat-count">Values & motivation</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent -->
+      <div>
+        <div class="section-label">Recent Sessions</div>
+        <div style="display:flex;flex-direction:column;gap:0.6rem">
+          <div class="session-item" onclick="navigate('screen-results')">
+            <div class="session-icon">🧠</div>
+            <div class="session-info">
+              <div class="session-name">Behavioral — PM Interview</div>
+              <div class="session-meta">Yesterday · 5 questions</div>
+            </div>
+            <div class="session-score">78</div>
+          </div>
+          <div class="session-item" onclick="navigate('screen-results')">
+            <div class="session-icon">💻</div>
+            <div class="session-info">
+              <div class="session-name">Technical — SWE Screen</div>
+              <div class="session-meta">3 days ago · 4 questions</div>
+            </div>
+            <div class="session-score">65</div>
+          </div>
+        </div>
+      </div>
+      <div style="height:1rem"></div>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="navTo(this,'screen-home')">
+      <div class="nav-icon">🏠</div><div class="nav-label">HOME</div>
+    </button>
+    <button class="nav-btn" onclick="navTo(this,'screen-setup')">
+      <div class="nav-icon">▶️</div><div class="nav-label">PRACTICE</div>
+    </button>
+    <button class="nav-btn" onclick="navTo(this,'screen-results')">
+      <div class="nav-icon">📊</div><div class="nav-label">PROGRESS</div>
+    </button>
+    <button class="nav-btn" onclick="navTo(this,'screen-paywall')">
+      <div class="nav-icon">⭐</div><div class="nav-label">PRO</div>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SCREEN 3: SETUP -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-setup">
+  <div class="setup-header">
+    <button class="back-btn" onclick="navigate('screen-home')">←</button>
+    <div class="setup-title">Set up your session</div>
+  </div>
+  <div class="scroll-body">
+    <div class="setup-body">
+      <div>
+        <div class="field-label">Your Role / Job Title</div>
+        <input type="text" class="input-field" id="roleInput" placeholder="e.g. Product Manager, SWE, Designer…">
+      </div>
+      <div>
+        <div class="field-label">Target Company (optional)</div>
+        <input type="text" class="input-field" id="companyInput" placeholder="e.g. Google, Stripe, a startup…">
+      </div>
+      <div>
+        <div class="field-label">Experience Level</div>
+        <div class="level-pills">
+          <div class="level-pill selected" data-level="Entry">Entry</div>
+          <div class="level-pill" data-level="Mid">Mid</div>
+          <div class="level-pill" data-level="Senior">Senior</div>
+          <div class="level-pill" data-level="Lead">Lead</div>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Interview Type</div>
+        <div class="type-pills">
+          <div class="type-pill selected" data-type="Behavioral" onclick="selectType(this)">
+            <div class="type-pill-icon">🧠</div>
+            <div class="type-pill-text">
+              <div class="type-pill-name">Behavioral</div>
+              <div class="type-pill-desc">STAR-format · Tell me about a time…</div>
+            </div>
+            <div class="type-pill-check">✓</div>
+          </div>
+          <div class="type-pill" data-type="Technical" onclick="selectType(this)">
+            <div class="type-pill-icon">💻</div>
+            <div class="type-pill-text">
+              <div class="type-pill-name">Technical</div>
+              <div class="type-pill-desc">Role-specific knowledge & skills</div>
+            </div>
+            <div class="type-pill-check">✓</div>
+          </div>
+          <div class="type-pill" data-type="Case Study" onclick="selectType(this)">
+            <div class="type-pill-icon">📋</div>
+            <div class="type-pill-text">
+              <div class="type-pill-name">Case Study</div>
+              <div class="type-pill-desc">Business problem solving</div>
+            </div>
+            <div class="type-pill-check">✓</div>
+          </div>
+          <div class="type-pill" data-type="Culture Fit" onclick="selectType(this)">
+            <div class="type-pill-icon">🤝</div>
+            <div class="type-pill-text">
+              <div class="type-pill-name">Culture Fit</div>
+              <div class="type-pill-desc">Values, motivation, soft skills</div>
+            </div>
+            <div class="type-pill-check">✓</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="setup-footer">
+    <button class="btn-main" onclick="startSession()">Start Interview →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SCREEN 4: SESSION -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-session">
+  <div class="session-header">
+    <div class="session-top">
+      <div class="session-role" id="sessionRole">Product Manager · Behavioral</div>
+      <button class="session-end" onclick="endSession()">End session</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text" id="progressText">0 / 5</div>
+    </div>
+  </div>
+  <div class="chat-area" id="chatArea"></div>
+  <div class="input-area">
+    <div class="hint-text" id="inputHint">Type your answer below</div>
+    <div class="input-row">
+      <textarea class="answer-input" id="answerInput" placeholder="Type your answer…" rows="1" onInput="autoResize(this)" onKeyDown="handleKey(event)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendAnswer()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SCREEN 5: RESULTS -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-results">
+  <div class="scroll-body">
+    <div class="results-header">
+      <div class="results-emoji" id="resultsEmoji">🎯</div>
+      <div class="results-title" id="resultsTitle">Session Complete!</div>
+      <div class="results-sub" id="resultsSub">Here's how you did</div>
+      <div class="big-score" id="bigScore" style="color:var(--accent)">0</div>
+      <div class="score-label">Overall Score</div>
+    </div>
+    <div class="results-body">
+      <div class="result-section">
+        <div class="result-section-title">📊 Score Breakdown</div>
+        <div id="breakdownRows"></div>
+      </div>
+      <div class="result-section">
+        <div class="result-section-title">💡 Key Insights</div>
+        <div id="insightRows"></div>
+      </div>
+    </div>
+    <div class="results-footer">
+      <button class="btn-main" onclick="navigate('screen-setup')">Practice Again →</button>
+      <button class="btn-ghost" onclick="navigate('screen-home')">Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SCREEN 6: PAYWALL -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="screen" id="screen-paywall">
+  <div class="scroll-body">
+    <div class="paywall-header">
+      <button class="back-btn" onclick="navigate('screen-home')" style="margin:0 auto 1.5rem 0">←</button>
+      <div class="paywall-icon">⚡</div>
+      <div class="paywall-title">Unlock your<br>full potential</div>
+      <div class="paywall-sub">You've used 3 of 3 free sessions this month.<br>Go Pro to keep practicing.</div>
+    </div>
+    <div class="plan-cards">
+      <div class="plan-card featured">
+        <div class="plan-badge">MOST POPULAR</div>
+        <div class="plan-top">
+          <div class="plan-name">Pro Monthly</div>
+          <div class="plan-price">
+            <div class="plan-amount">$19</div>
+            <div class="plan-period">/ month</div>
+          </div>
+        </div>
+        <div class="plan-features2">
+          <div class="plan-feat">Unlimited mock sessions</div>
+          <div class="plan-feat">Role & company-specific questions</div>
+          <div class="plan-feat">Weakness pattern detection</div>
+          <div class="plan-feat">Resume upload & analysis</div>
+          <div class="plan-feat">Detailed session history</div>
+        </div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-top">
+          <div class="plan-name">Lifetime Access</div>
+          <div class="plan-price">
+            <div class="plan-amount">$149</div>
+            <div class="plan-period">one-time</div>
+          </div>
+        </div>
+        <div class="plan-features2">
+          <div class="plan-feat">Everything in Pro, forever</div>
+          <div class="plan-feat">Share with 2 people</div>
+          <div class="plan-feat">Priority feature access</div>
+        </div>
+      </div>
+    </div>
+    <div class="paywall-footer">
+      <button class="btn-main" onclick="showToast('Payment coming soon — stay tuned! 🚀')">Continue with Pro →</button>
+      <button class="btn-ghost" onclick="navigate('screen-home')">Maybe later</button>
+      <div class="restore-link" onclick="showToast('No previous purchase found.')">Restore purchase</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════
+// STATE
+// ════════════════════════════════════
+let state = {
+  apiKey: '',
+  selectedRole: 'Software Engineer',
+  sessionRole: '',
+  sessionCompany: '',
+  sessionLevel: 'Entry',
+  sessionType: 'Behavioral',
+  questions: [],
+  currentQ: 0,
+  answers: [],
+  scores: [],
+  conversation: [],
+  isLoading: false,
+  demoMode: false
+};
+
+// ════════════════════════════════════
+// DEMO QUESTIONS (fallback)
+// ════════════════════════════════════
+const demoQuestions = {
+  Behavioral: [
+    "Tell me about a time you had to make a difficult decision with limited information. Walk me through your thinking.",
+    "Describe a situation where you had to influence someone without direct authority. What was the outcome?",
+    "Tell me about a time you failed. What did you learn from it?",
+    "Give me an example of when you had to handle multiple competing priorities. How did you decide what to focus on?",
+    "Describe a time you received difficult feedback. How did you respond?"
+  ],
+  Technical: [
+    "Walk me through how you'd approach building a scalable system that handles 1 million users.",
+    "Explain a complex technical concept you worked on recently as if I were a non-technical stakeholder.",
+    "How do you ensure code quality in a fast-moving team?",
+    "Describe a technical challenge you faced and how you solved it.",
+    "What's your approach to debugging a production issue under pressure?"
+  ],
+  "Case Study": [
+    "Our main product's DAU has dropped 20% over the past month. How would you diagnose and address this?",
+    "We're considering entering a new market. Walk me through how you'd evaluate the opportunity.",
+    "How would you prioritize a backlog of 50 feature requests with limited engineering resources?",
+    "Our customer churn rate is 15%. What's your approach to reducing it?",
+    "Design a metrics dashboard for a VP of Sales. What would you include and why?"
+  ],
+  "Culture Fit": [
+    "What kind of work environment do you thrive in?",
+    "How do you handle disagreement with your manager?",
+    "What motivates you most in your work?",
+    "Tell me about a time you went above and beyond for a team member.",
+    "Where do you see yourself in 3 years?"
+  ]
+};
+
+// ════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════
+function navigate(screenId) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active', 'exit');
+  });
+  const target = document.getElementById(screenId);
+  target.classList.add('active');
+  target.scrollTop = 0;
+}
+
+function navTo(btn, screenId) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  navigate(screenId);
+}
+
+function setType(type) { state.sessionType = type; }
+
+// ════════════════════════════════════
+// ONBOARDING
+// ════════════════════════════════════
+document.querySelectorAll('#roleChips .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#roleChips .chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    state.selectedRole = chip.dataset.role;
+  });
+});
+
+document.getElementById('apiKeyInput').addEventListener('input', e => {
+  state.apiKey = e.target.value.trim();
+});
+
+function goHome() {
+  state.demoMode = !state.apiKey;
+  const role = state.selectedRole;
+  document.getElementById('homeTitle').textContent = `Practice for ${role}`;
+  document.getElementById('quickTitle').innerHTML = `Behavioral Interview<br>Practice`;
+  navigate('screen-home');
+}
+
+// ════════════════════════════════════
+// SETUP SCREEN
+// ════════════════════════════════════
+document.querySelectorAll('.level-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('selected'));
+    pill.classList.add('selected');
+    state.sessionLevel = pill.dataset.level;
+  });
+});
+
+function selectType(el) {
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  state.sessionType = el.dataset.type;
+}
+
+// ════════════════════════════════════
+// START SESSION
+// ════════════════════════════════════
+async function startSession() {
+  const roleInput = document.getElementById('roleInput').value.trim();
+  const companyInput = document.getElementById('companyInput').value.trim();
+
+  state.sessionRole = roleInput || state.selectedRole;
+  state.sessionCompany = companyInput;
+  state.currentQ = 0;
+  state.answers = [];
+  state.scores = [];
+  state.conversation = [];
+
+  // Set header
+  const label = `${state.sessionRole}${state.sessionCompany ? ' @ ' + state.sessionCompany : ''} · ${state.sessionType}`;
+  document.getElementById('sessionRole').textContent = label;
+
+  navigate('screen-session');
+
+  // Clear chat
+  const chat = document.getElementById('chatArea');
+  chat.innerHTML = '';
+  updateProgress();
+
+  // Show opening message
+  addMsg('ai', `👋 I'm your PrepAce AI coach today. We'll go through 5 ${state.sessionType} interview questions tailored for a **${state.sessionLevel} ${state.sessionRole}${state.sessionCompany ? ' at ' + state.sessionCompany : ''}** role.\n\nTake your time with each answer. I'll give you real feedback after each one. Ready? Let's go.`);
+
+  // Generate or load questions
+  if (state.apiKey && !state.demoMode) {
+    await generateQuestionsAI();
+  } else {
+    state.questions = [...(demoQuestions[state.sessionType] || demoQuestions.Behavioral)];
+    state.demoMode = true;
+  }
+
+  setTimeout(() => askQuestion(), 800);
+}
+
+// ════════════════════════════════════
+// AI QUESTION GENERATION
+// ════════════════════════════════════
+async function generateQuestionsAI() {
+  showTyping();
+  try {
+    const prompt = `Generate exactly 5 ${state.sessionType} interview questions for a ${state.sessionLevel} ${state.sessionRole}${state.sessionCompany ? ' position at ' + state.sessionCompany : ''}. 
+Return ONLY a JSON array of 5 question strings, nothing else. No numbering, no explanation.
+Example: ["Question 1?", "Question 2?", "Question 3?", "Question 4?", "Question 5?"]`;
+
+    const res = await callClaude([{ role: 'user', content: prompt }], 800);
+    const text = res.trim().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed) && parsed.length >= 5) {
+      state.questions = parsed.slice(0, 5);
+    } else {
+      throw new Error('Invalid format');
+    }
+  } catch (e) {
+    state.questions = [...(demoQuestions[state.sessionType] || demoQuestions.Behavioral)];
+  }
+  removeTyping();
+}
+
+// ════════════════════════════════════
+// ASK QUESTION
+// ════════════════════════════════════
+function askQuestion() {
+  if (state.currentQ >= 5) { showResults(); return; }
+  const q = state.questions[state.currentQ];
+  const qLabel = `Question ${state.currentQ + 1} of 5`;
+  addMsg('ai', `**${qLabel}**\n\n${q}`);
+  updateProgress();
+  document.getElementById('answerInput').focus();
+}
+
+// ════════════════════════════════════
+// SEND ANSWER
+// ════════════════════════════════════
+async function sendAnswer() {
+  const input = document.getElementById('answerInput');
+  const answer = input.value.trim();
+  if (!answer || state.isLoading) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  state.isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('inputHint').textContent = 'Analyzing your answer…';
+
+  addMsg('user', answer);
+  state.answers.push(answer);
+  state.conversation.push({ role: 'user', content: answer });
+
+  showTyping();
+
+  // Get AI feedback
+  let feedback;
+  if (state.apiKey && !state.demoMode) {
+    feedback = await getAIFeedback(state.questions[state.currentQ], answer);
+  } else {
+    feedback = getDemoFeedback(answer);
+    await delay(1800);
+  }
+
+  removeTyping();
+  state.scores.push(feedback.scores);
+
+  // Show feedback card
+  showFeedbackCard(feedback);
+
+  state.currentQ++;
+  updateProgress();
+  state.isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('inputHint').textContent = 'Type your answer below';
+
+  if (state.currentQ < 5) {
+    setTimeout(() => askQuestion(), 600);
+  } else {
+    setTimeout(() => {
+      addMsg('ai', '✅ That's all 5 questions! Great work. Let me put together your full session report…');
+      setTimeout(() => showResults(), 1500);
+    }, 600);
+  }
+}
+
+// ════════════════════════════════════
+// AI FEEDBACK
+// ════════════════════════════════════
+async function getAIFeedback(question, answer) {
+  const prompt = `You are a senior interviewer giving feedback on a candidate's answer.
+
+Question: "${question}"
+Candidate's answer: "${answer}"
+Role: ${state.sessionLevel} ${state.sessionRole}
+Interview type: ${state.sessionType}
+
+Respond ONLY with a valid JSON object, no markdown, no explanation:
+{
+  "scores": {
+    "clarity": <0-100>,
+    "structure": <0-100>,
+    "relevance": <0-100>,
+    "impact": <0-100>
+  },
+  "overall": <0-100>,
+  "strength": "<one specific strength in 1 sentence>",
+  "improvement": "<one specific, actionable improvement in 1-2 sentences>",
+  "tip": "<a concrete reframing or better way to answer in 1-2 sentences>"
+}`;
+
+  try {
+    const res = await callClaude([{ role: 'user', content: prompt }], 600);
+    const clean = res.trim().replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  } catch (e) {
+    return getDemoFeedback(answer);
+  }
+}
+
+function getDemoFeedback(answer) {
+  const len = answer.split(' ').length;
+  const hasNumbers = /\d+/.test(answer);
+  const hasI = (answer.match(/\bI\b/gi) || []).length;
+
+  let clarity = Math.min(90, 50 + Math.min(len, 30));
+  let structure = len > 50 ? 72 : 48;
+  let relevance = 65 + Math.floor(Math.random() * 20);
+  let impact = hasNumbers ? 75 + Math.floor(Math.random() * 15) : 50 + Math.floor(Math.random() * 20);
+  let overall = Math.round((clarity + structure + relevance + impact) / 4);
+
+  return {
+    scores: { clarity, structure, relevance, impact },
+    overall,
+    strength: hasNumbers
+      ? "Good use of specific numbers and metrics — this makes your impact concrete and credible."
+      : "You communicated your role clearly and took ownership of the situation.",
+    improvement: structure < 65
+      ? "Structure your answer using the STAR format: Situation → Task → Action → Result. This makes it much easier to follow."
+      : "Add a quantified outcome at the end (e.g. '…which increased conversion by 18%') to make the impact memorable.",
+    tip: "Try starting with a one-sentence context summary, then diving into your actions. End with a specific result or lesson."
+  };
+}
+
+// ════════════════════════════════════
+// FEEDBACK CARD
+// ════════════════════════════════════
+function showFeedbackCard(fb) {
+  const overall = fb.overall;
+  const color = overall >= 75 ? 'var(--accent)' : overall >= 55 ? 'var(--gold)' : 'var(--accent2)';
+
+  const card = document.createElement('div');
+  card.className = 'feedback-card';
+  card.innerHTML = `
+    <div class="feedback-title">⚡ PrepAce Feedback · ${overall}/100</div>
+    ${scoreRow('Clarity', fb.scores.clarity)}
+    ${scoreRow('Structure', fb.scores.structure)}
+    ${scoreRow('Relevance', fb.scores.relevance)}
+    ${scoreRow('Impact', fb.scores.impact)}
+    <div class="feedback-tip">
+      ✅ <strong>Strength:</strong> ${fb.strength}<br><br>
+      💡 <strong>Improve:</strong> ${fb.improvement}
+      ${fb.tip ? `<br><br>🎯 <strong>Try this:</strong> ${fb.tip}` : ''}
+    </div>
+  `;
+
+  const chat = document.getElementById('chatArea');
+  chat.appendChild(card);
+  card.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function scoreRow(label, val) {
+  const color = val >= 75 ? '#4fffb0' : val >= 55 ? '#f5c842' : '#ff6b4a';
+  return `<div class="score-row2">
+    <div class="score-name">${label}</div>
+    <div class="score-track2"><div class="score-bar2" style="width:${val}%;background:${color}"></div></div>
+    <div class="score-num" style="color:${color}">${val}</div>
+  </div>`;
+}
+
+// ════════════════════════════════════
+// RESULTS SCREEN
+// ════════════════════════════════════
+function showResults() {
+  // Calculate averages
+  const avg = (key) => Math.round(state.scores.reduce((s, sc) => s + (sc[key] || 0), 0) / state.scores.length);
+  const clarity = avg('clarity');
+  const structure = avg('structure');
+  const relevance = avg('relevance');
+  const impact = avg('impact');
+  const overall = Math.round((clarity + structure + relevance + impact) / 4);
+
+  // Emoji + title
+  let emoji = overall >= 80 ? '🏆' : overall >= 65 ? '🎯' : overall >= 50 ? '📈' : '💪';
+  let title = overall >= 80 ? 'Excellent Session!' : overall >= 65 ? 'Good Work!' : overall >= 50 ? 'Keep Improving!' : 'Great Start!';
+
+  document.getElementById('resultsEmoji').textContent = emoji;
+  document.getElementById('resultsTitle').textContent = title;
+  document.getElementById('resultsSub').textContent = `${state.sessionType} · ${state.sessionRole}`;
+
+  // Animate score
+  let n = 0;
+  const el = document.getElementById('bigScore');
+  const color = overall >= 75 ? 'var(--accent)' : overall >= 55 ? 'var(--gold)' : 'var(--accent2)';
+  el.style.color = color;
+  const ticker = setInterval(() => {
+    n = Math.min(n + 3, overall);
+    el.textContent = n;
+    if (n >= overall) clearInterval(ticker);
+  }, 20);
+
+  // Breakdown
+  document.getElementById('breakdownRows').innerHTML = [
+    ['Clarity', clarity], ['Structure (STAR)', structure],
+    ['Relevance', relevance], ['Impact', impact]
+  ].map(([label, val]) => {
+    const c = val >= 75 ? 'var(--accent)' : val >= 55 ? 'var(--gold)' : 'var(--accent2)';
+    return `<div class="breakdown-row">
+      <div class="breakdown-label">${label}</div>
+      <div class="breakdown-track"><div class="breakdown-fill" style="width:${val}%;background:${c}"></div></div>
+      <div class="breakdown-score" style="color:${c}">${val}</div>
+    </div>`;
+  }).join('');
+
+  // Insights
+  const insights = generateInsights(overall, clarity, structure, relevance, impact);
+  document.getElementById('insightRows').innerHTML = insights.map(([color, text]) =>
+    `<div class="insight-item">
+      <div class="insight-dot" style="background:${color}"></div>
+      <div class="insight-text">${text}</div>
+    </div>`
+  ).join('');
+
+  navigate('screen-results');
+}
+
+function generateInsights(overall, clarity, structure, relevance, impact) {
+  const insights = [];
+  if (structure < 65) insights.push(['var(--gold)', 'Practice the STAR method (Situation → Task → Action → Result) to give your answers a clear, memorable structure.']);
+  if (impact < 65) insights.push(['var(--accent2)', 'Add quantified outcomes to your answers — numbers like percentages, dollar amounts, or time saved make your impact 3× more credible.']);
+  if (clarity >= 75) insights.push(['var(--accent)', 'Your communication was clear and easy to follow — this is one of the top traits interviewers look for.']);
+  if (relevance >= 75) insights.push(['var(--accent)', 'Your answers stayed on-topic and directly addressed what was asked — excellent focus.']);
+  if (overall >= 75) insights.push(['var(--accent)', 'You're performing above average. One more session targeting your weakest category will sharpen you significantly.']);
+  if (overall < 60) insights.push(['var(--gold)', 'Consistency is key — 15 minutes of daily practice will dramatically improve your score within a week.']);
+  if (insights.length < 3) insights.push(['var(--muted)', 'Keep going — patterns become clearer after 3+ sessions. PrepAce will track your progress automatically.']);
+  return insights.slice(0, 4);
+}
+
+// ════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════
+function addMsg(role, text) {
+  const chat = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-sender">${role === 'ai' ? 'PrepAce AI' : 'You'}</div>
+    <div class="msg-bubble">${markdownLite(text)}</div>
+  `;
+  chat.appendChild(div);
+  setTimeout(() => div.scrollIntoView({ behavior: 'smooth', block: 'end' }), 50);
+}
+
+function markdownLite(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function showTyping() {
+  const chat = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.id = 'typing';
+  div.innerHTML = `<div class="msg-sender" style="color:var(--accent);font-size:0.65rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.3rem">PrepAce AI</div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  chat.appendChild(div);
+  div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+function updateProgress() {
+  const pct = (state.currentQ / 5) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${state.currentQ} / 5`;
+}
+
+function endSession() {
+  if (state.answers.length > 0) {
+    showResults();
+  } else {
+    navigate('screen-home');
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAnswer();
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ════════════════════════════════════
+// CLAUDE API CALL
+// ════════════════════════════════════
+async function callClaude(messages, maxTokens = 1000) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': state.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      messages
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content.map(c => c.text || '').join('');
+}
+
+// ════════════════════════════════════
+// GREETING
+// ════════════════════════════════════
+function setGreeting() {
+  const h = new Date().getHours();
+  const greetings = document.querySelectorAll('.greeting');
+  const g = h < 12 ? 'Good morning 👋' : h < 17 ? 'Good afternoon 👋' : 'Good evening 👋';
+  greetings.forEach(el => el.textContent = g);
+}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+window.addEventListener('load', () => {
+  setGreeting();
+  setTimeout(() => {
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(() => document.getElementById('loading').style.display = 'none', 400);
+  }, 1200);
+});
+</script>
+</body>
+</html>
