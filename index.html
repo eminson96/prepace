@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATLAS — Relocation Route Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Spline+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --bg-2:#121817;
+    --panel:#161d1b;
+    --panel-2:#1c2522;
+    --line:#2a3531;
+    --line-2:#384540;
+    --fg:#eef2f0;
+    --mut:#8a9690;
+    --mut-2:#5f6b66;
+    --acc:#46e6a8;        /* electric mint */
+    --acc-dk:#119e74;
+    --amber:#f5b840;
+    --red:#ff6a52;
+    --blue:#5fb8ff;
+    --glow:0 0 0 1px rgba(70,230,168,.18), 0 0 40px -8px rgba(70,230,168,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Spline Sans",sans-serif;
+    background:var(--bg);
+    color:var(--fg);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* atmospheric background */
+  .bg-fx{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .bg-fx:before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(900px 500px at 78% -5%, rgba(70,230,168,.13), transparent 60%),
+      radial-gradient(700px 500px at 8% 12%, rgba(95,184,255,.08), transparent 60%);
+  }
+  .grid-lines{position:absolute;inset:0;opacity:.5;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:46px 46px;
+    mask-image:radial-gradient(circle at 50% 30%,#000 30%,transparent 78%);
+  }
+  /* subtle latitude arcs */
+  .arcs{position:absolute;inset:0;opacity:.35}
+  .arcs svg{width:100%;height:100%}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
+
+  .wrap{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:0 22px}
+
+  /* top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo .mark{width:34px;height:34px;position:relative;flex:0 0 auto}
+  .logo .mark svg{width:100%;height:100%}
+  .logo .name{font-family:"Bricolage Grotesque";font-weight:800;font-size:20px;letter-spacing:.5px}
+  .logo .name b{color:var(--acc)}
+  .topbar .tagline{font-family:"JetBrains Mono";font-size:11px;color:var(--mut);letter-spacing:1px;text-transform:uppercase}
+  @media(max-width:620px){.topbar .tagline{display:none}}
+
+  /* hero */
+  .hero{padding:40px 0 18px;text-align:center;position:relative}
+  .eyebrow{font-family:"JetBrains Mono";font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--acc);margin-bottom:18px}
+  .eyebrow span{color:var(--mut-2)}
+  h1.big{font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(38px,7vw,76px);line-height:.98;letter-spacing:-2px}
+  h1.big em{font-style:italic;font-weight:400;color:var(--acc)}
+  .lede{max-width:560px;margin:20px auto 0;color:var(--mut);font-size:17px}
+
+  /* planner console */
+  .console{
+    margin:42px auto 0;max-width:880px;
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));
+    border:1px solid var(--line);border-radius:20px;
+    box-shadow:0 40px 80px -40px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03);
+    overflow:visible;position:relative;
+  }
+  .console:before{content:"";position:absolute;inset:-1px;border-radius:20px;padding:1px;
+    background:linear-gradient(140deg,rgba(70,230,168,.4),transparent 30%,transparent 70%,rgba(95,184,255,.25));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+  .console-h{display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--line)}
+  .console-h .dot{width:10px;height:10px;border-radius:50%}
+  .dot.r{background:#ff6058}.dot.y{background:#ffbe2e}.dot.g{background:#2bca4e}
+  .console-h .title{margin-left:10px;font-family:"JetBrains Mono";font-size:12px;color:var(--mut);letter-spacing:1px}
+  .console-body{padding:30px}
+
+  .row{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:end}
+  @media(max-width:680px){.row{grid-template-columns:1fr;gap:14px}}
+  .swap{
+    align-self:end;margin-bottom:6px;width:42px;height:42px;border-radius:12px;border:1px solid var(--line-2);
+    background:var(--panel-2);color:var(--acc);cursor:pointer;display:grid;place-items:center;transition:.2s;flex:0 0 auto
+  }
+  .swap:hover{transform:rotate(180deg);border-color:var(--acc);box-shadow:var(--glow)}
+  @media(max-width:680px){.swap{justify-self:center;transform:rotate(90deg)}.swap:hover{transform:rotate(270deg)}}
+
+  .field{position:relative}
+  .field .lab{display:flex;align-items:center;gap:8px;font-family:"JetBrains Mono";font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:9px}
+  .field .lab .pin{width:8px;height:8px;border-radius:50%}
+  .pin.a{background:var(--blue);box-shadow:0 0 10px var(--blue)}
+  .pin.b{background:var(--acc);box-shadow:0 0 10px var(--acc)}
+  .combo{position:relative}
+  .combo input{
+    width:100%;padding:16px 16px;border:1px solid var(--line-2);border-radius:13px;
+    background:var(--bg);color:var(--fg);font-family:"Spline Sans";font-size:17px;font-weight:500;transition:.18s;
+  }
+  .combo input::placeholder{color:var(--mut-2)}
+  .combo input:focus{outline:none;border-color:var(--acc);box-shadow:var(--glow)}
+  .combo.locked input{cursor:default;color:var(--acc);font-weight:600}
+  .menu{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:40;max-height:260px;overflow-y:auto;
+    background:var(--panel-2);border:1px solid var(--line-2);border-radius:13px;box-shadow:0 30px 50px -20px #000;display:none
+  }
+  .menu.show{display:block}
+  .menu .opt{padding:11px 16px;cursor:pointer;font-size:15px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.03)}
+  .menu .opt:last-child{border:none}
+  .menu .opt:hover,.menu .opt.hl{background:rgba(70,230,168,.12);color:var(--acc)}
+  .menu .opt .fl{font-size:16px}
+  .menu .none{padding:14px 16px;color:var(--mut-2);font-size:13px;font-family:"JetBrains Mono"}
+  .menu::-webkit-scrollbar{width:8px}.menu::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+
+  .purpose{margin-top:26px}
+  .purpose .lab{font-family:"JetBrains Mono";font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:11px}
+  .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:560px){.pgrid{grid-template-columns:repeat(2,1fr)}}
+  .pcard{
+    border:1px solid var(--line-2);border-radius:13px;padding:14px 12px;text-align:center;cursor:pointer;background:var(--bg);transition:.16s;user-select:none
+  }
+  .pcard .ic{font-size:22px;display:block;margin-bottom:5px}
+  .pcard .t{font-size:13.5px;font-weight:600}
+  .pcard:hover{border-color:var(--line-2);transform:translateY(-2px)}
+  .pcard.on{border-color:var(--acc);background:rgba(70,230,168,.08);box-shadow:var(--glow)}
+  .pcard.on .t{color:var(--acc)}
+
+  .launch{
+    margin-top:28px;width:100%;padding:18px;border:none;border-radius:14px;cursor:pointer;
+    font-family:"Bricolage Grotesque";font-weight:800;font-size:18px;letter-spacing:.3px;
+    background:linear-gradient(100deg,var(--acc),var(--acc-dk));color:#05140e;
+    display:flex;align-items:center;justify-content:center;gap:12px;transition:.18s;position:relative;overflow:hidden
+  }
+  .launch:hover{filter:brightness(1.08);box-shadow:0 16px 40px -12px rgba(70,230,168,.6)}
+  .launch:disabled{opacity:.4;cursor:not-allowed;filter:none;box-shadow:none}
+  .launch svg{width:20px;height:20px}
+
+  .disclaimer{margin-top:16px;font-size:12.5px;color:var(--mut-2);text-align:center;line-height:1.6}
+  .disclaimer b{color:var(--amber)}
+
+  /* ===== RESULTS ===== */
+  #out{display:none;margin:60px 0 80px}
+  .res-head{text-align:center;margin-bottom:8px}
+  .res-route{display:inline-flex;align-items:center;gap:18px;font-family:"Bricolage Grotesque";font-weight:800;font-size:clamp(28px,5vw,46px);letter-spacing:-1px}
+  .res-route .fr{color:var(--mut)}
+  .res-route .to{color:var(--acc)}
+  .res-route .ln{position:relative;width:64px;height:2px;background:linear-gradient(90deg,var(--mut),var(--acc))}
+  .res-route .ln:after{content:"";position:absolute;right:-2px;top:-4px;border-left:8px solid var(--acc);border-top:5px solid transparent;border-bottom:5px solid transparent}
+  .res-route .plane{position:absolute;left:50%;top:-9px;transform:translateX(-50%);color:var(--acc)}
+  .res-meta{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px 0 44px}
+  .badge{font-family:"JetBrains Mono";font-size:12px;padding:7px 13px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel);color:var(--mut)}
+  .badge b{color:var(--fg)}
+  .badge.v-YES{border-color:rgba(255,106,82,.5);color:var(--red)}
+  .badge.v-NO{border-color:rgba(70,230,168,.5);color:var(--acc)}
+  .badge.v-CONDITIONAL{border-color:rgba(245,184,64,.5);color:var(--amber)}
+
+  /* timeline */
+  .timeline{position:relative;max-width:920px;margin:0 auto}
+  .step{position:relative;padding-left:74px;margin-bottom:18px}
+  .step:before{content:"";position:absolute;left:26px;top:54px;bottom:-18px;width:2px;
+    background:linear-gradient(var(--acc),transparent);opacity:.35}
+  .step:last-child:before{display:none}
+  .node{position:absolute;left:0;top:6px;width:54px;height:54px;border-radius:16px;
+    background:var(--panel-2);border:1px solid var(--line-2);display:grid;place-items:center;font-size:24px;
+    box-shadow:0 10px 30px -12px #000}
+  .node .n{position:absolute;-top:0;right:-6px;top:-8px;width:24px;height:24px;border-radius:50%;
+    background:var(--acc);color:#05140e;font-family:"JetBrains Mono";font-weight:700;font-size:12px;display:grid;place-items:center;border:3px solid var(--bg)}
+
+  .panel{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:.2s}
+  .panel:hover{border-color:var(--line-2)}
+  .panel-h{display:flex;align-items:center;gap:12px;padding:18px 20px;cursor:pointer;user-select:none}
+  .panel-h h3{font-family:"Bricolage Grotesque";font-weight:600;font-size:20px;flex:1;letter-spacing:-.3px}
+  .panel-h .tw{font-family:"JetBrains Mono";font-size:11px;color:var(--mut-2);white-space:nowrap;letter-spacing:1px;text-transform:uppercase}
+  .panel-h .car{color:var(--acc);transition:.25s}
+  .panel.open .car{transform:rotate(180deg)}
+  .panel-b{display:none;padding:4px 22px 22px 22px}
+  .panel.open .panel-b{display:block;animation:fade .35s both}
+  @keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .panel-b h4{font-family:"JetBrains Mono";font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc-dk);margin:18px 0 10px}
+  .panel-b ul{list-style:none}
+  .panel-b li{position:relative;padding:7px 0 7px 24px;font-size:14.5px;border-bottom:1px solid rgba(255,255,255,.03)}
+  .panel-b li:last-child{border:none}
+  .panel-b li:before{content:"→";position:absolute;left:0;top:7px;color:var(--acc);font-weight:700}
+  .panel-b ul.warn li:before{content:"!";color:var(--amber);font-weight:800}
+  .kv{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:14.5px}
+  .kv:last-child{border:none}
+  .kv .k{font-family:"JetBrains Mono";font-size:11.5px;color:var(--mut);flex:0 0 140px;letter-spacing:.5px;text-transform:uppercase;padding-top:2px}
+  .kv .v{flex:1}
+  .chip2{display:inline-block;padding:3px 11px;border-radius:7px;font-family:"JetBrains Mono";font-size:12px;font-weight:600}
+  .chip2.yes{background:rgba(70,230,168,.14);color:var(--acc)}
+  .chip2.no{background:rgba(255,106,82,.14);color:var(--red)}
+  .chip2.cond{background:rgba(245,184,64,.14);color:var(--amber)}
+  .loc{font-family:"JetBrains Mono";background:rgba(95,184,255,.12);color:var(--blue);padding:1px 7px;border-radius:5px;font-size:13px}
+
+  /* checklist */
+  .checklist{max-width:920px;margin:34px auto 0;background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line);border-radius:18px;padding:28px}
+  .checklist h3{font-family:"Bricolage Grotesque";font-weight:800;font-size:24px;letter-spacing:-.5px}
+  .checklist .cs{color:var(--mut);font-size:13.5px;margin:4px 0 20px}
+  .prog{height:10px;background:var(--bg);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-bottom:22px}
+  .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc-dk),var(--acc));transition:.4s;box-shadow:0 0 14px rgba(70,230,168,.6)}
+  .chk{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+  .chk:last-child{border:none}
+  .cbox{width:24px;height:24px;border:2px solid var(--line-2);border-radius:8px;flex:0 0 auto;display:grid;place-items:center;transition:.16s}
+  .chk.done .cbox{background:var(--acc);border-color:var(--acc)}
+  .cbox svg{width:14px;height:14px;opacity:0;transition:.16s}
+  .chk.done .cbox svg{opacity:1}
+  .chk span{font-size:15px}
+  .chk.done span{text-decoration:line-through;color:var(--mut-2)}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--mut-2);font-family:"JetBrains Mono";font-size:13px}
+  footer{position:relative;z-index:2;text-align:center;padding:40px 22px 60px;color:var(--mut-2);font-family:"JetBrains Mono";font-size:11.5px;letter-spacing:.5px}
+
+  @keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+  .step,.checklist{animation:rise .55s both}
+</style>
+</head>
+<body>
+<div class="bg-fx">
+  <div class="grid-lines"></div>
+  <div class="arcs">
+    <svg viewBox="0 0 1200 600" preserveAspectRatio="none" fill="none" stroke="rgba(70,230,168,0.18)" stroke-width="1">
+      <path d="M-50 180 Q 600 60 1250 180"/>
+      <path d="M-50 300 Q 600 200 1250 300"/>
+      <path d="M-50 420 Q 600 320 1250 420"/>
+    </svg>
+  </div>
+</div>
+<div class="grain"></div>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="logo">
+      <div class="mark">
+        <svg viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="18" stroke="#46e6a8" stroke-width="1.5" opacity=".5"/>
+          <ellipse cx="20" cy="20" rx="8" ry="18" stroke="#46e6a8" stroke-width="1.5" opacity=".5"/>
+          <line x1="2" y1="20" x2="38" y2="20" stroke="#46e6a8" stroke-width="1.5" opacity=".5"/>
+          <circle cx="26" cy="13" r="3.5" fill="#46e6a8"/>
+        </svg>
+      </div>
+      <div class="name">ATL<b>AS</b></div>
+    </div>
+    <div class="tagline">Relocation Route Planner</div>
+  </div>
+
+  <section class="hero">
+    <div class="eyebrow">Plan your move <span>//</span> 197 origins <span>//</span> 11 destinations</div>
+    <h1 class="big">Your route to<br><em>living abroad.</em></h1>
+    <p class="lede">Pick where you're starting and where you're headed. ATLAS maps the full legal route — visas, arrival steps, work, healthcare, housing and the real cost of landing.</p>
+  </section>
+
+  <section class="console">
+    <div class="console-h">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="title">route_planner.exe</span>
+    </div>
+    <div class="console-body">
+      <div class="row">
+        <div class="field">
+          <div class="lab"><span class="pin a"></span> Origin</div>
+          <div class="combo" id="combo-from">
+            <input type="text" id="from-input" placeholder="Search any country…" autocomplete="off">
+            <div class="menu" id="from-menu"></div>
+          </div>
+        </div>
+        <button class="swap" id="swap" title="swap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4v13M7 4L4 7M7 4l3 3M17 20V7M17 20l3-3M17 20l-3-3"/></svg>
+        </button>
+        <div class="field">
+          <div class="lab"><span class="pin b"></span> Destination</div>
+          <div class="combo" id="combo-to">
+            <input type="text" id="to-input" placeholder="Choose a destination…" autocomplete="off">
+            <div class="menu" id="to-menu"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="purpose">
+        <div class="lab">Purpose of move</div>
+        <div class="pgrid" id="pgrid">
+          <div class="pcard on" data-p="Work"><span class="ic">💼</span><span class="t">Work</span></div>
+          <div class="pcard" data-p="Study"><span class="ic">🎓</span><span class="t">Study</span></div>
+          <div class="pcard" data-p="Family"><span class="ic">👪</span><span class="t">Family</span></div>
+          <div class="pcard" data-p="Freelance"><span class="ic">💻</span><span class="t">Freelance</span></div>
+        </div>
+      </div>
+
+      <button class="launch" id="launch">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+        Map my route
+      </button>
+
+      <p class="disclaimer"><b>Note:</b> a practical guide, not legal advice. Rules, fees and timelines change and depend on your nationality &amp; case — always confirm on the official government site before acting.</p>
+    </div>
+  </section>
+
+  <section id="out"></section>
+</div>
+
+<footer>ATLAS · offline relocation guide · figures are approximate and change over time</footer>
+
+<script>
+/* ===== full world country list (origins) ===== */
+const ORIGINS = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cambodia","Cameroon","Canada","Cape Verde","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Brazzaville)","Congo (Kinshasa)","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","UAE","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+
+const DESTINATIONS = ["United Kingdom","Germany","France","Netherlands","Spain","Portugal","Ireland","United States","Canada","Australia","UAE"];
+
+const EU = ["France","Germany","Italy","Netherlands","Poland","Portugal","Spain","Sweden","Ireland","Austria","Belgium","Bulgaria","Croatia","Cyprus","Czechia","Denmark","Estonia","Finland","Greece","Hungary","Latvia","Lithuania","Luxembourg","Malta","Romania","Slovakia","Slovenia","Iceland","Liechtenstein","Norway"];
+const isEU = c => EU.includes(c);
+
+const CUR = {Germany:"€",France:"€",Spain:"€",Italy:"€",Netherlands:"€",Portugal:"€",Poland:"zł",Sweden:"kr","United Kingdom":"£","United States":"$",Canada:"C$",Australia:"A$",UAE:"AED","Saudi Arabia":"SAR",Japan:"¥","South Korea":"₩",Ireland:"€"};
+
+/* flag emoji helper (best-effort by name) */
+const FLAG={"United Kingdom":"🇬🇧",Germany:"🇩🇪",France:"🇫🇷",Netherlands:"🇳🇱",Spain:"🇪🇸",Portugal:"🇵🇹",Ireland:"🇮🇪","United States":"🇺🇸",Canada:"🇨🇦",Australia:"🇦🇺",UAE:"🇦🇪",India:"🇮🇳",China:"🇨🇳",Brazil:"🇧🇷",Nigeria:"🇳🇬",Pakistan:"🇵🇰",Philippines:"🇵🇭",Mexico:"🇲🇽",Romania:"🇷🇴",Italy:"🇮🇹",Poland:"🇵🇱",Japan:"🇯🇵"};
+
+const DEST = {
+
+
+"Germany": (from,p)=>({
+  visa: isEU(from)?"NO":"CONDITIONAL",
+  workNow: isEU(from)?"YES": (p==="Study"?"CONDITIONAL":"NO"),
+  visaType: isEU(from)?"EU free movement — no visa, just register":
+    p==="Work"?"EU Blue Card or Skilled Worker visa (Fachkräfteeinwanderung)":
+    p==="Study"?"National (D) student visa / residence permit":
+    p==="Freelance"?"Freelance residence permit (Aufenthaltserlaubnis für Freiberufler)":"Family reunion visa (Familiennachzug)",
+  restrict: isEU(from)?"None — full right to live & work":"Visa tied to purpose; job needs recognised qualification; German often required for many roles.",
+  before: isEU(from)
+    ? ["Valid passport/ID — that's the core requirement","Book a flight; nothing else needed pre-departure","Optional: arrange first weeks' accommodation to get an address for Anmeldung"]
+    : ["Get a job offer (Work) or university admission (Study) first","Have qualifications recognised via anabin / 'Anerkennung' if regulated profession","Book visa appointment at German embassy/consulate","Prepare: passport, photos, proof of funds (~€11,900/yr blocked account for students), health insurance, contract/admission letter","Pay visa fee (~€75) and attend interview"],
+  beforeCost: isEU(from)?"Flight only":"≈ €75 visa + ~€11,900 blocked account (students) + insurance",
+  beforeTime: isEU(from)?"Immediate":"Skilled worker 1–3 months; student 6–12 weeks (varies)",
+  mistakes: ["Skipping qualification recognition for regulated jobs","Underestimating how much German you need","Booking the embassy appointment too late — slots fill months ahead"],
+  arrival: [
+    {t:"Find housing & get an address", d:"You need a registered address before almost anything else."},
+    {t:"Anmeldung (address registration)", d:"Register at the local <span class='local'>Bürgeramt</span> within ~2 weeks. You get a <span class='local'>Meldebescheinigung</span> — needed for bank, tax ID, contracts."},
+    {t:"Tax ID", d:"<span class='local'>Steuer-ID</span> arrives by post a few days after Anmeldung."},
+    {t:"Bank account", d:"Open a <span class='local'>Girokonto</span> (N26, DKB, Sparkasse). Needs Anmeldung + ID."},
+    {t:"SIM card", d:"Prepaid SIM (Aldi Talk, Vodafone, O2) at any supermarket/shop."},
+    {t:"Health insurance", d:"Mandatory. Register with a public <span class='local'>Krankenkasse</span> (TK, AOK, Barmer)."},
+    {t:"Transport", d:"Get the <span class='local'>Deutschlandticket</span> (~€58/mo) for nationwide regional transport."}
+  ],
+  healthType:"Public (statutory) — mandatory for everyone",
+  healthHow:"Join a Krankenkasse (TK/AOK/Barmer); employer splits the cost. Self-employed pay full.",
+  healthCost:"≈ €250–450/mo employed (split with employer); students ~€120/mo",
+  healthEmrg:"Call 112. ER treats you regardless; bring insurance card.",
+  jobs:["StepStone","Indeed.de","LinkedIn","Make-it-in-Germany (official portal)","XING","Arbeitsagentur (federal job centre)"],
+  jobDocs:["Residence/work permit","Steuer-ID","German bank account","Krankenkasse membership","Recognised qualifications (if regulated)"],
+  salary:"Entry-level ≈ €30k–42k/yr gross; Blue Card threshold ~€45.3k (lower for shortage jobs)",
+  fastIndustries:"IT/software, engineering, nursing & care, skilled trades, logistics",
+  housing:"Competitive in big cities. Landlords want <span class='local'>SCHUFA</span> (credit score), proof of income (~3x rent), and last payslips.",
+  housingReq:"Deposit (<span class='local'>Kaution</span>) up to 3 months' cold rent, SCHUFA, ID, income proof",
+  rent:"1-bed: €700–1,400/mo (Berlin/Munich high). Add 'warm' costs (utilities).",
+  housingWhere:["ImmoScout24","Immowelt","WG-Gesucht (shared flats)","eBay Kleinanzeigen","Facebook housing groups"],
+  costMin:"≈ €1,300–1,800/mo (single, modest city)",
+  costFood:"Groceries ~€250–350; eating out ~€12–18/meal; Deutschlandticket €58",
+  hidden:["Rundfunkbeitrag (TV/radio fee) ~€18.36/mo per household","'Kalt' vs 'warm' rent — utilities add a lot","2–3 month deposit upfront","Notary/agent fees if buying"],
+  risks:["Missing the 2-week Anmeldung window","Not having German health insurance from day one","Signing a flat contract you can't read","Working before your permit allows it (students: 140 full / 280 half days limit)","Assuming English is enough for bureaucracy"]
+}),
+
+"United States": (from,p)=>({
+  visa:"YES",
+  workNow: p==="Study"?"CONDITIONAL":"NO",
+  visaType: p==="Work"?"H-1B (specialty), L-1 (transfer), O-1 (extraordinary) or employer green card":
+    p==="Study"?"F-1 student visa":
+    p==="Freelance"?"No simple freelance visa — usually O-1 or self-petition; hard":"Family-based immigrant visa (IR/F categories)",
+  restrict: p==="Freelance"?"No dedicated freelancer/digital-nomad visa. Routes are limited and slow.":"Most work visas need employer sponsorship; H-1B is lottery-based and capped.",
+  before:[
+    p==="Work"?"Secure employer sponsorship — they file the petition (I-129 / labor cert)":"Get accepted by a SEVP-approved school (Study) or qualifying sponsor",
+    "Pay SEVIS fee (students) / petition fees (work)",
+    "Complete DS-160 online application",
+    "Pay visa fee (~$185 for many categories)",
+    "Book + attend visa interview at US embassy/consulate; give biometrics",
+    "Bring: passport, photo, I-20 (students) or approval notice, funds proof, ties-to-home evidence"],
+  beforeCost:"DS-160 fee ~$185; SEVIS ~$350 (F-1); plus petition fees (employer pays work)",
+  beforeTime:"Highly variable. Interview wait weeks–months; H-1B is annual lottery (Mar–Apr).",
+  mistakes:["Assuming any job = a visa; you need sponsorship","Weak 'ties to home country' at interview → refusal","Missing the H-1B lottery window","Overstaying — triggers multi-year re-entry bans"],
+  arrival:[
+    {t:"Immigration at port of entry", d:"CBP officer admits you; check your I-94 record online (admission status & duration)."},
+    {t:"Social Security Number (SSN)", d:"Apply at a Social Security office if work-authorized — needed for pay & credit."},
+    {t:"Phone / SIM", d:"Prepaid SIM (T-Mobile, Mint, AT&T). Some need ID; prepaid usually doesn't."},
+    {t:"Bank account", d:"Chase / Bank of America / Wells Fargo. Bring passport, visa, SSN or proof of address."},
+    {t:"Housing", d:"Most leases need SSN + US credit history → expect to pay extra deposit as a newcomer."},
+    {t:"Transport", d:"City transit card (MetroCard NYC, Clipper SF, etc.). Most of the US needs a car."}
+  ],
+  healthType:"Private — no universal public system",
+  healthHow:"Get coverage via employer, the ACA marketplace (healthcare.gov), or a student plan. Uninsured care is very expensive.",
+  healthCost:"$300–600+/mo individual private; employer plans cheaper; student plans ~$1,500–2,500/yr",
+  healthEmrg:"Call 911. ERs must stabilize you regardless of insurance — but bills can be huge.",
+  jobs:["LinkedIn","Indeed","Glassdoor","Handshake (students)","Company career pages","ZipRecruiter"],
+  jobDocs:["Valid work-authorizing visa","SSN","Form I-9 + EAD if applicable","Passport"],
+  salary:"Entry-level varies hugely: ~$35k–55k/yr typical; tech far higher",
+  fastIndustries:"Tech, healthcare, finance, hospitality, logistics",
+  housing:"Newcomers struggle with no US credit. Offer larger deposit, co-signer, or prepay months.",
+  housingReq:"Credit check, SSN, proof of income (~3x rent), deposit (1 month), sometimes first+last",
+  rent:"1-bed: $1,200–3,500/mo depending on city (NYC/SF top end)",
+  housingWhere:["Zillow","Apartments.com","StreetEasy (NYC)","Craigslist (careful)","Facebook Marketplace"],
+  costMin:"≈ $2,000–3,500/mo (single, mid-size city)",
+  costFood:"Groceries ~$300–450; eating out ~$15–25/meal; transit ~$70–130 or car costs",
+  hidden:["Health insurance is a major fixed cost","Tipping 15–20% expected","Sales tax added at checkout (not in sticker price)","Renters insurance often required"],
+  risks:["Overstaying your I-94 — serious bans","Working without authorization","Assuming the H-1B is easy/guaranteed","Skipping health insurance","Building zero credit history early"]
+}),
+
+"Canada": (from,p)=>({
+  visa:"CONDITIONAL",
+  workNow: p==="Study"?"CONDITIONAL":(p==="Work"?"CONDITIONAL":"NO"),
+  visaType: p==="Work"?"Express Entry (PR) or employer-tied work permit (LMIA / IMP)":
+    p==="Study"?"Study permit (+ off-campus work rights)":
+    p==="Freelance"?"Express Entry / self-employed stream — limited; usually skilled PR":"Family sponsorship",
+  restrict:"Points-based for PR (age, education, language, experience). Work permits often tied to one employer.",
+  before:[
+    "Check eligibility on the official IRCC site / CRS calculator (Express Entry)",
+    p==="Study"?"Get a Letter of Acceptance from a Designated Learning Institution (DLI)":"Create Express Entry profile or get a job offer",
+    "Take a language test (IELTS/CELPIP for English, TEF for French)",
+    "Get an Educational Credential Assessment (ECA) for foreign degrees",
+    "Prove funds; do medical exam + police certificate",
+    "Submit application online via IRCC; pay fees; give biometrics"],
+  beforeCost:"PR ~C$1,365/adult + biometrics C$85; study permit C$150; language test ~C$300",
+  beforeTime:"Express Entry ~6 months after invitation; study permit weeks–months",
+  mistakes:["Low CRS score and waiting passively for an invite","Letting documents (medical, police check) expire","Choosing a non-DLI school (no study permit)","Underestimating proof-of-funds needed"],
+  arrival:[
+    {t:"Landing / port of entry", d:"Confirm permit; PRs complete landing formalities and get COPR processed."},
+    {t:"SIN (Social Insurance Number)", d:"Apply at Service Canada — required to work and get paid."},
+    {t:"Provincial health card", d:"Register with the province (OHIP in Ontario, etc.). Some have a waiting period — get private cover meanwhile."},
+    {t:"Bank account", d:"RBC, TD, Scotiabank offer newcomer accounts. Bring passport + permit."},
+    {t:"SIM card", d:"Rogers, Bell, Telus, or budget brands (Koodo, Fido, Public Mobile)."},
+    {t:"Transport", d:"City transit card (Presto in Ontario, Compass in Vancouver)."}
+  ],
+  healthType:"Public (provincial) — free at point of use, but coverage by province",
+  healthHow:"Register for your province's health card on arrival. Waiting period in some (e.g. BC up to 3 months).",
+  healthCost:"Free for covered services; private cover ~C$100–200/mo to bridge waiting periods",
+  healthEmrg:"Call 911. ER care available; covered once your provincial card is active.",
+  jobs:["Job Bank (official)","Indeed.ca","LinkedIn","Workopolis","Provincial nominee job portals"],
+  jobDocs:["Valid permit (or PR)","SIN","Canadian-format résumé","Credential assessment (some fields)"],
+  salary:"Entry-level ~C$35k–48k/yr; minimum wage ~C$15–17/hr by province",
+  fastIndustries:"Healthcare, tech, skilled trades, transport, agriculture",
+  housing:"Tight in Toronto/Vancouver. Landlords want credit + references; newcomers offer extra deposit or co-signer.",
+  housingReq:"First + last month deposit, references, proof of income, sometimes credit check",
+  rent:"1-bed: C$1,500–2,800/mo in big cities; cheaper in smaller provinces",
+  housingWhere:["Rentals.ca","Realtor.ca","Kijiji","Facebook Marketplace","PadMapper"],
+  costMin:"≈ C$2,000–3,200/mo (single, big city)",
+  costFood:"Groceries ~C$300–400; eating out ~C$18–25/meal; transit ~C$100–160",
+  hidden:["Winter gear & heating costs","Sales tax added at checkout (GST/PST/HST)","Tipping 15–20%","Phone plans are pricey"],
+  risks:["Letting CRS-related documents expire","Working beyond study-permit hour limits","Skipping private cover during the health waiting period","Non-DLI school = no permit/PGWP"]
+}),
+
+"United Kingdom": (from,p)=>({
+  visa:"YES",
+  workNow: p==="Study"?"CONDITIONAL":(p==="Work"?"CONDITIONAL":"NO"),
+  visaType: p==="Work"?"Skilled Worker visa (needs licensed sponsor + Certificate of Sponsorship)":
+    p==="Study"?"Student visa (Tier 4) — limited part-time work":
+    p==="Freelance"?"No general freelance visa; Global Talent or self-sponsorship routes are narrow":"Family visa (partner/spouse)",
+  restrict:"Most work routes need an employer with a sponsor licence + minimum salary threshold. Immigration Health Surcharge applies.",
+  before:[
+    p==="Work"?"Get a job with a licensed sponsor → they issue a Certificate of Sponsorship":"Get a CAS from a licensed student sponsor (university)",
+    "Apply online on gov.uk; prove English (test or qualification)",
+    "Pay the visa fee + Immigration Health Surcharge (IHS) upfront",
+    "Prove maintenance funds",
+    "Give biometrics at a visa centre; some get a digital eVisa / others a BRP"],
+  beforeCost:"Skilled Worker visa £719–£1,500+; IHS ~£1,035/yr; student visa ~£490 + IHS",
+  beforeTime:"Often 3 weeks (priority faster); varies by country",
+  mistakes:["Applying for a job with a non-sponsoring employer","Forgetting the IHS is per year and paid upfront","Funds not held long enough (28-day rule)","Wrong English-test provider"],
+  arrival:[
+    {t:"Collect BRP / activate eVisa", d:"Biometric Residence Permit or digital status proves your right to live/work."},
+    {t:"Register with a GP", d:"Sign up at a local <span class='local'>NHS GP</span> surgery — free, bring address + ID."},
+    {t:"National Insurance number", d:"Apply for your <span class='local'>NIN</span> — needed for legal work & tax."},
+    {t:"Bank account", d:"Monzo/Starling (app-based, fast) or high-street banks. Need address + ID/visa."},
+    {t:"SIM card", d:"Giffgaff, EE, Vodafone, O2 — cheap PAYG SIMs everywhere."},
+    {t:"Transport", d:"London: Oyster card / contactless. Elsewhere: local bus/rail passes."}
+  ],
+  healthType:"Public (NHS) — funded via the IHS you paid",
+  healthHow:"Register with a GP near you. The IHS covers most NHS care during your visa.",
+  healthCost:"IHS ~£1,035/yr (paid with visa); prescriptions ~£9.90 in England (free in Scotland/Wales)",
+  healthEmrg:"Call 999 (or 111 non-urgent). A&E is free to all.",
+  jobs:["Indeed.co.uk","LinkedIn","Reed","TotalJobs","CV-Library","gov.uk Find a Job"],
+  jobDocs:["Valid visa / share code (right-to-work check)","NIN","UK bank account","CV"],
+  salary:"Entry-level ~£22k–30k/yr; Skilled Worker general threshold ~£38,700 (lower for some)",
+  fastIndustries:"Healthcare/NHS, IT, finance, hospitality, education, care work",
+  housing:"Letting agents check references + credit + right-to-rent. Newcomers may need a UK guarantor or 6 months upfront.",
+  housingReq:"Deposit (capped ~5 weeks' rent), referencing, proof of income, right-to-rent check",
+  rent:"1-bed: £900–2,000/mo (London high); cheaper in the north",
+  housingWhere:["Rightmove","Zoopla","SpareRoom (flatshares)","OpenRent","Gumtree"],
+  costMin:"≈ £1,400–2,200/mo (single, outside central London)",
+  costFood:"Groceries ~£200–300; eating out ~£12–18/meal; transit ~£100–180 in London",
+  hidden:["Council tax (£100–200+/mo) on most homes","IHS paid upfront for the whole visa length","TV Licence £169.50/yr if watching live/iPlayer","Letting referencing fees for guarantors"],
+  risks:["Working for a non-sponsoring employer","Breaching student work-hour limits (usually 20h/wk term-time)","Not carrying a valid right-to-work share code","Funds-history (28-day) rule mistakes"]
+}),
+
+"Australia": (from,p)=>({
+  visa:"YES",
+  workNow: p==="Study"?"CONDITIONAL":(p==="Work"?"CONDITIONAL":"NO"),
+  visaType: p==="Work"?"Skilled visa (points-tested 189/190) or employer-sponsored (482/186)":
+    p==="Study"?"Student visa (subclass 500)":
+    p==="Freelance"?"No freelance visa; skilled PR or sponsored routes only":"Partner/family visa",
+  restrict:"Points-based skilled migration (age, English, skills assessment, occupation on the relevant list).",
+  before:[
+    "Check your occupation is on the skilled occupation list",
+    "Get a positive skills assessment from the relevant assessing authority",
+    "Take English test (IELTS/PTE)",
+    p==="Study"?"Get a Confirmation of Enrolment (CoE) from an institution":"Submit an Expression of Interest (EOI) via SkillSelect",
+    "Receive invitation → apply online; health exam + police checks"],
+  beforeCost:"Skilled visa ~A$4,640+; student visa ~A$1,600; skills assessment + tests extra",
+  beforeTime:"Skilled visas several months–1yr+; student visa weeks–months",
+  mistakes:["Applying before a skills assessment","Occupation not on the current list","Health/character document expiry","Underestimating total visa cost"],
+  arrival:[
+    {t:"Tax File Number (TFN)", d:"Apply online with the ATO — needed to work and avoid top-rate tax."},
+    {t:"Medicare (if eligible)", d:"Enrol if your visa grants access; otherwise rely on OSHC/private."},
+    {t:"Bank account", d:"CommBank, ANZ, NAB, Westpac — open online before arrival, verify with passport."},
+    {t:"SIM card", d:"Telstra, Optus, Vodafone or budget (Amaysim, Boost)."},
+    {t:"Housing", d:"Apply with references + payslips; competitive 'inspections'."},
+    {t:"Transport", d:"State card: Opal (NSW), Myki (VIC), Go Card (QLD)."}
+  ],
+  healthType:"Public (Medicare) for eligible visas; students need OSHC private cover",
+  healthHow:"Enrol in Medicare if eligible; students must hold Overseas Student Health Cover.",
+  healthCost:"Medicare levy ~2% of taxable income; OSHC ~A$500–700/yr (single)",
+  healthEmrg:"Call 000. Public ER care available; OSHC/Medicare covers eligible people.",
+  jobs:["Seek","Indeed.com.au","LinkedIn","Jora","Workforce Australia (gov)"],
+  jobDocs:["Valid visa with work rights","TFN","Australian bank account","Skills assessment (regulated jobs)"],
+  salary:"Entry-level ~A$50k–60k/yr; minimum wage ~A$24/hr",
+  fastIndustries:"Healthcare, construction/trades, mining, IT, hospitality, agriculture",
+  housing:"Competitive rental 'inspections'. Bring references, payslips, ID points.",
+  housingReq:"Bond (~4 weeks' rent, lodged with authority), references, proof of income",
+  rent:"1-bed: A$1,600–2,800/mo in Sydney/Melbourne",
+  housingWhere:["realestate.com.au","Domain","Flatmates.com.au","Facebook groups"],
+  costMin:"≈ A$2,500–3,800/mo (single, major city)",
+  costFood:"Groceries ~A$400–500; eating out ~A$20–30/meal; transit ~A$120–200",
+  hidden:["High rent in Sydney/Melbourne","Bond lodged separately (not to landlord)","Distance = high domestic travel costs","OSHC mandatory for students"],
+  risks:["Applying without a skills assessment","Occupation dropping off the list mid-process","Breaching student work limits","Letting health/police checks expire"]
+}),
+
+"UAE": (from,p)=>({
+  visa:"CONDITIONAL",
+  workNow:"CONDITIONAL",
+  visaType: p==="Work"?"Employer-sponsored work residence visa (most common)":
+    p==="Study"?"Student residence visa (sponsored by the institution)":
+    p==="Freelance"?"Freelance permit + residence (free-zone, e.g. GoFreelance / TECOM)":"Family residence visa (sponsored by a resident)",
+  restrict:"Residence is almost always sponsored — by an employer, free zone, family member, or property. No path to citizenship for most.",
+  before:[
+    "Most people enter on an employer offer; the employer handles the work-permit + visa",
+    "Get your degree/certificates attested (home country → UAE embassy → MOFA)",
+    "Do a medical fitness test (often after arrival)",
+    p==="Freelance"?"Pick a free zone, apply for a freelance permit, then residence visa":"Sign the job offer / contract",
+    "Employer applies for entry permit; you enter and complete residence steps"],
+  beforeCost:"Employer usually pays work visa; freelance permit ~AED 7,500–20,000/yr; attestation fees vary",
+  beforeTime:"Employer visa often 2–4 weeks; freelance permit 1–3 weeks",
+  mistakes:["Not attesting certificates before arrival","Assuming you can freelance on a tourist visa (illegal)","Ignoring contract small print on visa cancellation","Working before residence is stamped"],
+  arrival:[
+    {t:"Medical fitness test", d:"Blood test + chest X-ray at an approved centre — required for residence."},
+    {t:"Emirates ID", d:"Biometrics + the <span class='local'>Emirates ID</span> card — your key identity document."},
+    {t:"Residence visa stamp", d:"Employer/sponsor finalises the residence visa in your passport / digitally."},
+    {t:"Bank account", d:"Emirates NBD, ADCB, Mashreq — need Emirates ID + salary letter."},
+    {t:"SIM card", d:"Etisalat (e&) or du — need passport/Emirates ID."},
+    {t:"Transport", d:"Nol card for Dubai Metro/bus; cars common, fuel cheap."}
+  ],
+  healthType:"Private — mandatory health insurance (usually employer-provided)",
+  healthHow:"Employer must provide insurance in most emirates; otherwise buy a private plan.",
+  healthCost:"Basic plans ~AED 600–1,500/yr; comprehensive much higher (often employer-paid)",
+  healthEmrg:"Call 998 (ambulance) / 999 (police). Private & public hospitals; insurance matters for cost.",
+  jobs:["Bayt","Naukrigulf","LinkedIn","GulfTalent","Dubizzle Jobs","Indeed.ae"],
+  jobDocs:["Employer-sponsored work permit","Emirates ID","Attested certificates","Passport"],
+  salary:"Tax-free income. Entry-level ~AED 4,000–10,000/mo varies widely by sector",
+  fastIndustries:"Hospitality, construction, retail, finance, tech, logistics, healthcare",
+  housing:"Rent often paid in 1–4 cheques/year. Need Emirates ID + (often) a residence visa.",
+  housingReq:"Security deposit (~5%), Ejari registration, post-dated cheques, ID",
+  rent:"1-bed: AED 4,000–9,000/mo (Dubai/Abu Dhabi); cheaper in other emirates",
+  housingWhere:["Bayut","Property Finder","Dubizzle","dubizzle / agent listings"],
+  costMin:"≈ AED 6,000–10,000/mo (single, Dubai)",
+  costFood:"Groceries ~AED 800–1,200; eating out ~AED 35–70/meal; fuel cheap",
+  hidden:["Rent often demanded in few large cheques","5% housing fee / DEWA deposit & bills","Alcohol pricey + licence rules","School fees very high if you have kids"],
+  risks:["Freelancing/working on a visit visa (illegal)","Not attesting documents in advance","Bouncing a rent cheque (serious legal issue)","Visa cancelled if you leave the sponsoring job — sort status fast"]
+}),
+
+"France": (from,p)=>({
+  visa: isEU(from)?"NO":"CONDITIONAL",
+  workNow: isEU(from)?"YES":(p==="Study"?"CONDITIONAL":"NO"),
+  visaType: isEU(from)?"EU/EEA free movement — no visa":
+    p==="Work"?"Long-stay work visa / 'Passeport Talent' (skilled) or salarié":
+    p==="Study"?"Long-stay student visa (VLS-TS étudiant)":
+    p==="Freelance"?"'Profession libérale' long-stay visa (self-employed)":"Family / 'vie privée et familiale' visa",
+  restrict: isEU(from)?"None — full right to live & work":"Most routes need a job/admission first; French strongly expected; visa must be validated online after arrival.",
+  before: isEU(from)
+    ? ["Valid passport/ID","Book travel; sort first accommodation","Optional: bring docs (birth certificate etc.) translated for admin"]
+    : ["Get a job offer, admission, or qualifying activity","Apply via France-Visas portal, then book at VFS/embassy","Prepare: passport, photos, proof of funds, accommodation proof, insurance, contract/admission","Pay visa fee (~€99 long-stay); attend appointment + biometrics","After arrival: validate the VLS-TS online with OFII within 3 months"],
+  beforeCost: isEU(from)?"Flight only":"≈ €99 long-stay visa + OFII tax on validation + insurance",
+  beforeTime: isEU(from)?"Immediate":"Long-stay visa ~2–8 weeks (varies by consulate)",
+  mistakes:["Forgetting to validate the VLS-TS online after arrival (your visa lapses)","Underestimating French-language needs for admin","Not getting documents translated by a sworn translator","Missing the proof-of-accommodation requirement"],
+  arrival:[
+    {t:"Validate your visa (OFII)", d:"Non-EU: validate the <span class='local'>VLS-TS</span> online within 3 months — it becomes your residence permit."},
+    {t:"Find housing & proof of address", d:"You need a <span class='local'>justificatif de domicile</span> for almost everything."},
+    {t:"Social security number", d:"Register for <span class='local'>Sécurité Sociale</span> to access healthcare (gives a numéro de sécu)."},
+    {t:"Bank account", d:"Open a <span class='local'>compte bancaire</span> (BNP, Société Générale, or online: Boursorama). Needs address + ID."},
+    {t:"SIM card", d:"Orange, SFR, Bouygues, or Free Mobile — cheap forfaits at any shop."},
+    {t:"Transport", d:"City pass: Navigo in Paris (weekly/monthly), local cards elsewhere."}
+  ],
+  healthType:"Public (Sécurité Sociale) — universal for residents, plus top-up 'mutuelle'",
+  healthHow:"Register for Sécu once eligible (after ~3 months residence for some). Add a private mutuelle for the gap.",
+  healthCost:"Public payroll-funded; mutuelle ~€20–60/mo; students ~free public cover",
+  healthEmrg:"Call 15 (SAMU) or 112. ER treats everyone; carry your carte Vitale once issued.",
+  jobs:["Pôle emploi / France Travail (official)","Indeed.fr","LinkedIn","APEC (managers)","Welcome to the Jungle","HelloWork"],
+  jobDocs:["Residence permit with work rights","Numéro de sécurité sociale","French bank account (RIB)","Recognised diplomas (regulated jobs)"],
+  salary:"Entry-level ~€22k–30k/yr gross; SMIC (minimum) ~€21.6k/yr",
+  fastIndustries:"Hospitality/tourism, IT, healthcare, engineering, agriculture, retail",
+  housing:"Landlords want a French guarantor (<span class='local'>garant</span>) + payslips (~3x rent). Newcomers use Visale (free state guarantee) or GarantMe.",
+  housingReq:"Deposit (1 month unfurnished / up to 2 furnished), guarantor, payslips, ID",
+  rent:"1-bed: €700–1,400/mo (Paris high); much cheaper in regions",
+  housingWhere:["LeBonCoin","SeLoger","PAP (no agency)","Studapart (students)","Facebook groups"],
+  costMin:"≈ €1,200–1,800/mo (single, modest city)",
+  costFood:"Groceries ~€250–350; eating out ~€12–18/meal; Navigo ~€88/mo (Paris)",
+  hidden:["Taxe d'habitation phased out for main homes but check","Mutuelle top-up insurance","Guarantor requirement blocks many newcomers","Agency fees on rentals"],
+  risks:["Not validating the VLS-TS online (visa becomes invalid)","No French guarantor → can't rent","Working beyond student limits (~964h/yr)","Skipping the mutuelle and facing co-pays","Assuming English is enough for prefecture admin"]
+}),
+
+"Netherlands": (from,p)=>({
+  visa: isEU(from)?"NO":"CONDITIONAL",
+  workNow: isEU(from)?"YES":(p==="Study"?"CONDITIONAL":"NO"),
+  visaType: isEU(from)?"EU/EEA free movement — no visa":
+    p==="Work"?"Highly Skilled Migrant permit (employer must be a recognised sponsor) or EU Blue Card":
+    p==="Study"?"Student residence permit (university acts as sponsor)":
+    p==="Freelance"?"Self-employed permit (point-based) — DAFT visa for US citizens":"Family reunification (MVV + permit)",
+  restrict: isEU(from)?"None — full right to live & work":"Skilled-worker route needs an IND-recognised sponsor + salary threshold; most enter via MVV.",
+  before: isEU(from)
+    ? ["Valid passport/ID","Arrange first accommodation","Optional: legalise/translate key documents (birth certificate)"]
+    : ["Get a job with an IND-recognised sponsor (Work) or university admission (Study)","Sponsor usually files the MVV + residence permit with the IND for you","Prepare: passport, photos, legalised birth certificate, proof of funds, salary contract/admission","Pay fees; collect MVV sticker at the embassy","After arrival: register + collect your residence card from the IND"],
+  beforeCost:"Highly Skilled Migrant permit ~€350+ (often employer-paid); student permit ~€243",
+  beforeTime:"Recognised-sponsor cases often 2–4 weeks; others longer",
+  mistakes:["Applying with a non-recognised sponsor (no fast route)","Not legalising/apostilling your birth certificate early","Missing the salary threshold for skilled migrant","Delaying the BSN registration on arrival"],
+  arrival:[
+    {t:"Register at the municipality (BRP)", d:"Book at the <span class='local'>gemeente</span> to get your <span class='local'>BSN</span> (citizen number) — needed for work, bank, health."},
+    {t:"Collect residence permit", d:"Non-EU: pick up your card from the IND after the appointment."},
+    {t:"Health insurance", d:"Mandatory <span class='local'>basisverzekering</span> within 4 months — buy from a Dutch insurer."},
+    {t:"Bank account", d:"ING, ABN AMRO, Rabobank, or bunq (app). Needs BSN + ID + address."},
+    {t:"SIM card", d:"KPN, Vodafone, Odido, or budget (Lebara, Simyo)."},
+    {t:"Transport", d:"OV-chipkaart (or contactless OVpay) for trains, trams & buses nationwide."}
+  ],
+  healthType:"Private but mandatory (regulated) — everyone buys basic insurance",
+  healthHow:"Take out a <span class='local'>basisverzekering</span> within 4 months of getting your BSN. Low earners get 'zorgtoeslag' (allowance).",
+  healthCost:"~€140–160/mo basic; annual own-risk 'eigen risico' ~€385",
+  healthEmrg:"Call 112. First see a <span class='local'>huisarts</span> (GP) for non-emergencies — gatekeeper to specialists.",
+  jobs:["Indeed.nl","LinkedIn","Undutchables (internationals)","Nationale Vacaturebank","Glassdoor","IamExpat Jobs"],
+  jobDocs:["Residence permit with work rights","BSN","Dutch bank account (IBAN)","Diploma evaluation (regulated jobs)"],
+  salary:"Entry-level ~€2,200–2,800/mo gross; minimum wage ~€2,070/mo (21+)",
+  fastIndustries:"Tech/IT, logistics, finance, agriculture/horticulture, hospitality, healthcare",
+  housing:"Severe shortage in Amsterdam/Utrecht. Landlords want payslips (~3–4x rent), BSN, sometimes a Dutch guarantor.",
+  housingReq:"Deposit (1–2 months), proof of income, BSN, contract; beware rental scams",
+  rent:"1-bed: €1,200–2,000/mo (Amsterdam high); cheaper in smaller cities",
+  housingWhere:["Funda (mostly buy)","Pararius","Kamernet (rooms)","HousingAnywhere","Facebook expat groups"],
+  costMin:"≈ €1,600–2,300/mo (single, big city)",
+  costFood:"Groceries ~€250–350; eating out ~€15–22/meal; OV transport ~€80–150",
+  hidden:["Eigen risico (health own-risk) ~€385/yr","Severe housing shortage = high competition & scams","City tax / utilities on top of rent","30% ruling tax benefit is shrinking — don't assume it"],
+  risks:["Renting from a scammer who asks for a deposit before viewing","Not getting your BSN quickly (blocks everything)","Missing the 4-month health insurance deadline","Working with a non-recognised sponsor","Breaching student work limits (16h/wk or summer full-time)"]
+}),
+
+"Spain": (from,p)=>({
+  visa: isEU(from)?"NO":"CONDITIONAL",
+  workNow: isEU(from)?"YES":(p==="Study"?"CONDITIONAL":"NO"),
+  visaType: isEU(from)?"EU/EEA free movement — no visa":
+    p==="Work"?"Work + residence visa (employer-sponsored) or Highly Qualified visa":
+    p==="Study"?"Student visa (estancia por estudios)":
+    p==="Freelance"?"Digital Nomad Visa or self-employed (autónomo) visa":"Family reunification visa",
+  restrict: isEU(from)?"None (EU citizens register for NIE/residence)":"Work route is hard without sponsorship; the Digital Nomad Visa is popular for remote workers.",
+  before: isEU(from)
+    ? ["Valid passport/ID","Arrange first accommodation","Get your NIE appointment lined up for after arrival"]
+    : ["Pick the right route (job, study, digital nomad, autónomo)","Apply at the Spanish consulate; book early — slots are scarce","Prepare: passport, photos, criminal record check (apostilled), proof of funds, private health insurance, contract/admission","Pay visa fee; attend appointment + biometrics","Digital Nomad: prove remote income (~2x minimum wage) from non-Spanish clients"],
+  beforeCost:"Visa fees ~€80–160; apostilled documents + translations extra; insurance required",
+  beforeTime:"Digital Nomad Visa often ~3–4 weeks; others vary",
+  mistakes:["Not apostilling the criminal record check","Booking flights before the consulate slot","Underestimating consulate appointment scarcity","Assuming the NIE alone lets you work (it doesn't always)"],
+  arrival:[
+    {t:"Get your NIE / TIE", d:"The <span class='local'>NIE</span> (foreigner number) and <span class='local'>TIE</span> card identify you — needed for everything."},
+    {t:"Empadronamiento", d:"Register your address at the town hall (<span class='local'>padrón</span>) — required for many services."},
+    {t:"Social security number", d:"Get your <span class='local'>número de la seguridad social</span> to work and access public health."},
+    {t:"Bank account", d:"BBVA, Santander, CaixaBank, or online (N26). Needs NIE + ID."},
+    {t:"SIM card", d:"Movistar, Vodafone, Orange, or budget (Lowi, Simyo)."},
+    {t:"Transport", d:"City transport card (e.g. Madrid's abono, Barcelona's T-usual)."}
+  ],
+  healthType:"Public (universal for residents/workers); private common for faster access",
+  healthHow:"Once registered with social security + padrón, register at your local health centre for a health card.",
+  healthCost:"Public free at point of use once contributing; private ~€50–100/mo",
+  healthEmrg:"Call 112. ER care available; carry your health card once issued.",
+  jobs:["InfoJobs","LinkedIn","Indeed.es","Tecnoempleo (IT)","Jobsora","Glassdoor"],
+  jobDocs:["Residence/work permit","Social security number","NIE","Spanish bank account"],
+  salary:"Entry-level ~€16k–22k/yr gross; minimum wage ~€16.5k/yr (SMI)",
+  fastIndustries:"Tourism/hospitality, tech, teaching English, customer service, agriculture",
+  housing:"Landlords want payslips, a deposit, and often a guarantor (<span class='local'>aval</span>). Furnished short-term common for newcomers.",
+  housingReq:"Deposit (1–2 months 'fianza'), proof of income, NIE, sometimes extra guarantee",
+  rent:"1-bed: €700–1,300/mo (Madrid/Barcelona high); cheaper inland",
+  housingWhere:["Idealista","Fotocasa","Pisos.com","Badi (rooms)","Facebook groups"],
+  costMin:"≈ €1,100–1,700/mo (single, modest city)",
+  costFood:"Groceries ~€200–300; eating out ~€10–15/meal (menú del día); transport ~€20–55",
+  hidden:["IBI property tax / community fees if buying","Agency fee (often 1 month) on rentals","Slow bureaucracy = budget for waiting","Beware of touristy-area rent premiums"],
+  risks:["Underestimating how slow/competitive NIE appointments are","Not apostilling foreign documents","Working before the permit is active","Rental scams in tourist cities","Digital Nomad: working for Spanish clients beyond the allowed share"]
+}),
+
+"Portugal": (from,p)=>({
+  visa: isEU(from)?"NO":"CONDITIONAL",
+  workNow: isEU(from)?"YES":(p==="Study"?"CONDITIONAL":"NO"),
+  visaType: isEU(from)?"EU/EEA free movement — no visa":
+    p==="Work"?"Work visa (job offer) or Highly Qualified Activity visa":
+    p==="Study"?"Student residence visa":
+    p==="Freelance"?"Digital Nomad Visa (D8) or self-employed visa (D2)":"Family reunification visa",
+  restrict: isEU(from)?"None (register at the local câmara/AIMA)":"Routes funnel through a national visa then a residence permit via AIMA; the D8 nomad visa is popular.",
+  before: isEU(from)
+    ? ["Valid passport/ID","Arrange first accommodation","Plan to get your NIF (tax number) early"]
+    : ["Choose the route (job, study, D8 nomad, D2 self-employed)","Apply at the Portuguese consulate / VFS","Prepare: passport, photos, criminal record (apostilled), proof of funds/income, accommodation proof, health insurance","D8 nomad: show remote income ~4x Portuguese minimum wage","Enter on the national visa, then attend an AIMA appointment for the residence permit"],
+  beforeCost:"National visa ~€90; residence permit ~€155+ at AIMA; insurance + apostilles extra",
+  beforeTime:"National visa ~2–8 weeks; AIMA permit step can be slow (backlogs)",
+  mistakes:["Underestimating AIMA appointment backlogs","Not getting a NIF early (needed to rent/bank)","Missing the income proof for the D8","Forgetting to apostille documents"],
+  arrival:[
+    {t:"Get a NIF (tax number)", d:"The <span class='local'>NIF</span> is the master key — needed to rent, bank, get a phone contract."},
+    {t:"AIMA residence appointment", d:"Non-EU: finalise your residence permit with <span class='local'>AIMA</span> (formerly SEF)."},
+    {t:"Social security (NISS)", d:"Register for <span class='local'>Segurança Social</span> if working."},
+    {t:"Bank account", d:"Millennium BCP, Novobanco, or online. Needs NIF + ID + address."},
+    {t:"SIM card", d:"MEO, NOS, or Vodafone — prepaid SIMs widely available."},
+    {t:"Transport", d:"City card: Navegante in Lisbon, Andante in Porto."}
+  ],
+  healthType:"Public (SNS) for residents; private common to skip waiting lists",
+  healthHow:"Register at your local health centre (centro de saúde) once you have residence + NISS for an SNS number.",
+  healthCost:"SNS low-cost/free at point of use; private ~€30–70/mo",
+  healthEmrg:"Call 112. ER care available; an SNS number helps with follow-up care.",
+  jobs:["Net-Empregos","LinkedIn","Indeed.pt","Sapo Emprego","ITJobs (tech)","Landing.jobs"],
+  jobDocs:["Residence permit with work rights","NIF","NISS (social security)","Portuguese bank account (IBAN)"],
+  salary:"Entry-level ~€10k–16k/yr gross; minimum wage ~€870/mo (14 payments)",
+  fastIndustries:"Tourism/hospitality, tech & startups, call centres (multilingual), real estate",
+  housing:"Tight in Lisbon/Porto. Landlords want NIF, deposit, and proof of income; many ask 2–3 months upfront.",
+  housingReq:"Deposit (1–2 months), NIF, proof of income, sometimes guarantor",
+  rent:"1-bed: €700–1,300/mo (Lisbon/Porto high); cheaper in smaller towns",
+  housingWhere:["Idealista","Imovirtual","OLX","Casa Sapo","Facebook groups"],
+  costMin:"≈ €1,000–1,600/mo (single, Lisbon higher)",
+  costFood:"Groceries ~€200–280; eating out ~€8–14/meal; transport ~€30–45",
+  hidden:["AIMA backlogs delay your permit (and travel)","Lisbon rent has risen sharply","IMI property tax if buying","NHR tax regime changed — don't assume the old benefits"],
+  risks:["Counting on a fast AIMA appointment","No NIF = can't rent or bank","Working before residence is granted","Tourist-area rent premiums & scams","D8: not meeting the remote-income threshold"]
+}),
+
+"Ireland": (from,p)=>({
+  visa: isEU(from)?"NO":"CONDITIONAL",
+  workNow: isEU(from)?"YES":(p==="Study"?"CONDITIONAL":"NO"),
+  visaType: isEU(from)?"EU/EEA free movement — no visa":
+    p==="Work"?"Critical Skills Employment Permit or General Employment Permit (job offer needed)":
+    p==="Study"?"Student visa + IRP registration":
+    p==="Freelance"?"No simple freelance visa; usually employment-permit or business routes":"Family / dependant visa",
+  restrict: isEU(from)?"None — full right to live & work":"Most work routes need a job offer + employment permit; salary thresholds apply. UK citizens have Common Travel Area rights.",
+  before: isEU(from)
+    ? ["Valid passport/ID","Arrange first accommodation (very tight market)","Plan to get a PPS number early"]
+    : ["Get a job offer and the matching employment permit (employer/employee applies)","If visa-required nationality, apply for an entry visa online (AVATS)","Prepare: passport, photos, proof of funds, job offer/permit, private health insurance","Enter Ireland, then register for an IRP card with immigration","Students: show fees paid + funds + private medical insurance"],
+  beforeCost:"Critical Skills permit €1,000; General permit €500–1,000; entry visa ~€60; IRP €300",
+  beforeTime:"Employment permits ~4–13 weeks (varies); visa decisions vary",
+  mistakes:["Job offer below the salary threshold for the permit","Not booking the IRP registration appointment early","Underestimating Dublin's housing crisis","Missing private health insurance proof (students)"],
+  arrival:[
+    {t:"Register for an IRP card", d:"Non-EU: register your immigration permission and get the <span class='local'>IRP</span> card."},
+    {t:"PPS number", d:"Apply for a <span class='local'>PPS number</span> (Personal Public Service) — needed to work, get taxed correctly, access services."},
+    {t:"Bank account", d:"AIB, Bank of Ireland, or Revolut/N26. Need ID + proof of address (tricky as a newcomer)."},
+    {t:"SIM card", d:"Three, Vodafone, Eir, or budget (48, GoMo)."},
+    {t:"Health cover", d:"Public system exists but many use private (VHI, Laya, Irish Life) for speed."},
+    {t:"Transport", d:"Leap Card for Dublin buses, Luas, DART & trains."}
+  ],
+  healthType:"Public (HSE) — subsidised, not fully free for all; private widely used",
+  healthHow:"Public care is means-tested (GP visits often paid unless you have a medical/GP-visit card). Many buy private insurance.",
+  healthCost:"GP visit ~€50–65 without a card; private insurance ~€80–150/mo",
+  healthEmrg:"Call 112 or 999. ER (A&E) charges ~€100 without referral/cover but treats you.",
+  jobs:["IrishJobs","LinkedIn","Indeed.ie","Jobs.ie","Recruitment agencies (tech/pharma)"],
+  jobDocs:["Employment permit + immigration permission","PPS number","Irish bank account","CV"],
+  salary:"Entry-level ~€28k–35k/yr; Critical Skills permit threshold ~€38k+ (varies by role)",
+  fastIndustries:"Tech (big multinationals), pharma/medtech, finance, healthcare, hospitality",
+  housing:"Severe shortage, especially Dublin. Expect fierce competition, viewings with queues, references + deposit.",
+  housingReq:"Deposit (1 month), references, proof of income, sometimes upfront months",
+  rent:"1-bed: €1,500–2,400/mo in Dublin; high nationwide",
+  housingWhere:["Daft.ie","Rent.ie","MyHome.ie","Facebook housing groups"],
+  costMin:"≈ €2,000–3,000/mo (single, Dublin)",
+  costFood:"Groceries ~€250–350; eating out ~€15–22/meal; Leap Card ~€100–140",
+  hidden:["Dublin's housing crisis = very high rent & scarcity","GP visits & A&E charges without a card","Private health insurance for speed","Pricey utilities & broadband"],
+  risks:["Assuming you'll find housing easily in Dublin","Job offer below the permit salary threshold","Working before immigration permission is registered","Rental scams asking for deposits sight-unseen","Breaching student work limits (20h/wk term-time)"]
+})
+
+};
+
+/* ---- GENERIC FALLBACK for destinations without a detailed profile ---- */
+function genericPlan(from,to,p){
+  const eu = isEU(to);
+  const fromEU = isEU(from);
+  const cur = CUR[to] || "$";
+  return {
+    visa: (fromEU && eu) ? "NO" : "CONDITIONAL",
+    workNow: (fromEU && eu) ? "YES" : (p==="Study"?"CONDITIONAL":"NO"),
+    visaType: (fromEU&&eu) ? "EU/EEA free movement — register locally, no visa" :
+      p==="Work"?"Employer-sponsored work / skilled visa (type depends on "+to+")":
+      p==="Study"?"Student visa / residence permit":
+      p==="Freelance"?"Freelance / self-employment permit (availability varies by country)":
+      "Family / reunion visa",
+    restrict:"Exact route depends on your nationality and "+to+"'s current rules — check the official immigration site. Depends on case.",
+    before:[
+      "Check visa requirements for your nationality on "+to+"'s official immigration website",
+      p==="Work"?"Secure a job offer if a work visa needs sponsorship":(p==="Study"?"Get admission from a recognised institution":"Confirm which permit fits your purpose"),
+      "Gather core docs: valid passport, photos, proof of funds, purpose document (offer/admission)",
+      "Arrange health insurance valid for entry",
+      "Book + attend a visa appointment at the nearest "+to+" embassy/consulate",
+      "Pay the visa fee and give biometrics if required"],
+    beforeCost:"Visa fees vary — typically equivalent of "+cur+"50–"+cur+"500. Confirm officially.",
+    beforeTime:"Varies widely (weeks to several months). Apply early.",
+    mistakes:["Booking flights before the visa is approved","Missing a required document at the appointment","Letting funds/medical/police documents expire","Assuming a tourist entry lets you work — it usually doesn't"],
+    arrival:[
+      {t:"Register your address / residence", d:"Many countries require registering with local authorities soon after arrival."},
+      {t:"Get a local SIM card", d:"Buy a prepaid SIM at the airport or a phone shop with your passport."},
+      {t:"Open a bank account", d:"Bring passport, visa/permit, and proof of address. Some banks offer newcomer accounts."},
+      {t:"Sort health coverage", d:"Register for public health if eligible, or hold private insurance."},
+      {t:"Get a transport card", d:"Most cities have a rechargeable public-transport card."},
+      {t:"Get a tax / ID number", d:"Many countries issue a tax or national ID number you'll need for work & contracts."}
+    ],
+    healthType:"Varies — many countries have public systems for residents; otherwise private.",
+    healthHow:"Check whether your visa grants public-health access; if not, hold private insurance.",
+    healthCost:"Public: often payroll-linked. Private: varies widely.",
+    healthEmrg:"Learn the local emergency number on arrival; ERs generally treat emergencies.",
+    jobs:["LinkedIn","Indeed (local domain)","Local national job portals","Recruitment agencies"],
+    jobDocs:["Valid work-authorizing visa/permit","Local tax/ID number","Local bank account","Translated/recognised qualifications if needed"],
+    salary:"Depends heavily on country, sector and city. Research local averages.",
+    fastIndustries:"Often: tech, healthcare, hospitality, logistics, education — varies by country.",
+    housing:"Landlords typically want a deposit, proof of income and ID. Newcomers may need a guarantor or extra deposit.",
+    housingReq:"Deposit (often 1–3 months' rent), contract, proof of income, ID",
+    rent:"Varies by city — research the specific area you're targeting.",
+    housingWhere:["Local property portals","Facebook housing groups","Local classifieds","Agents"],
+    costMin:"Depends on the city — build a budget from local rent + food + transport figures.",
+    costFood:"Research local grocery and eating-out prices for your target city.",
+    hidden:["Upfront deposits","Local taxes/fees newcomers don't expect","Currency-transfer fees","Insurance you didn't budget for"],
+    risks:["Working before your permit allows it","Overstaying your visa","Signing contracts you can't read","Not registering your address where required","Relying on outdated rules — always check the official site"]
+  };
+}
+
+
+/* ============================================================ */
+const ICON = {1:"🔍",2:"✈️",3:"🛬",4:"💼",5:"🏥",6:"🏠",7:"💰",8:"⚠️"};
+
+/* ---------- searchable combobox ---------- */
+function makeCombo(inputId, menuId, list, locked, onPick){
+  const input=document.getElementById(inputId);
+  const menu=document.getElementById(menuId);
+  let hl=-1, filtered=[...list];
+
+  function render(items){
+    filtered=items;
+    if(!items.length){ menu.innerHTML=`<div class="none">No country found</div>`; menu.classList.add("show"); return; }
+    menu.innerHTML=items.map((c,i)=>`<div class="opt ${i===hl?'hl':''}" data-v="${c}"><span class="fl">${FLAG[c]||"🏳️"}</span>${c}</div>`).join("");
+    menu.classList.add("show");
+  }
+  function close(){ menu.classList.remove("show"); hl=-1; }
+  function pick(v){ input.value=v; close(); onPick(v); }
+
+  input.addEventListener("focus",()=>{ hl=-1; render(list); });
+  input.addEventListener("input",()=>{
+    const q=input.value.trim().toLowerCase();
+    hl=-1;
+    render(q? list.filter(c=>c.toLowerCase().includes(q)) : list);
+    onPick(null); // invalidate until a real pick
+  });
+  input.addEventListener("keydown",e=>{
+    if(!menu.classList.contains("show"))return;
+    if(e.key==="ArrowDown"){e.preventDefault();hl=Math.min(hl+1,filtered.length-1);render(filtered);scrollHl();}
+    else if(e.key==="ArrowUp"){e.preventDefault();hl=Math.max(hl-1,0);render(filtered);scrollHl();}
+    else if(e.key==="Enter"){e.preventDefault();if(filtered[hl])pick(filtered[hl]);else if(filtered.length===1)pick(filtered[0]);}
+    else if(e.key==="Escape"){close();}
+  });
+  function scrollHl(){ const el=menu.querySelector(".opt.hl"); if(el)el.scrollIntoView({block:"nearest"}); }
+  menu.addEventListener("mousedown",e=>{ const o=e.target.closest(".opt"); if(o){e.preventDefault();pick(o.dataset.v);} });
+  document.addEventListener("click",e=>{ if(!e.target.closest("#"+menuId) && e.target!==input) close(); });
+
+  return { set:(v)=>{input.value=v;onPick(v);}, get:()=>input.value };
+}
+
+let chosenFrom=null, chosenTo=null, purpose="Work";
+
+const fromCombo=makeCombo("from-input","from-menu",ORIGINS,false,v=>{ chosenFrom = (v && ORIGINS.includes(v))?v:null; updateLaunch(); });
+const toCombo  =makeCombo("to-input","to-menu",DESTINATIONS,false,v=>{ chosenTo = (v && DESTINATIONS.includes(v))?v:null; updateLaunch(); });
+
+document.getElementById("swap").addEventListener("click",()=>{
+  // swap only works if 'to' is also a valid origin and 'from' is a valid destination
+  const f=chosenFrom, t=chosenTo;
+  if(t && ORIGINS.includes(t)) fromCombo.set(t); 
+  if(f && DESTINATIONS.includes(f)) toCombo.set(f);
+  else if(f){ /* origin not a destination: just clear to */ document.getElementById("to-input").value=""; chosenTo=null; }
+  updateLaunch();
+});
+
+document.getElementById("pgrid").addEventListener("click",e=>{
+  const c=e.target.closest(".pcard"); if(!c)return;
+  document.querySelectorAll(".pcard").forEach(x=>x.classList.remove("on"));
+  c.classList.add("on"); purpose=c.dataset.p;
+});
+
+const launchBtn=document.getElementById("launch");
+function updateLaunch(){ launchBtn.disabled = !(chosenFrom && chosenTo); }
+updateLaunch();
+
+function pill(v){
+  if(v==="YES")return `<span class="chip2 no">YES — visa needed</span>`;
+  if(v==="NO")return `<span class="chip2 yes">NO — no visa</span>`;
+  return `<span class="chip2 cond">CONDITIONAL</span>`;
+}
+function wpill(v){
+  if(v==="YES")return `<span class="chip2 yes">YES</span>`;
+  if(v==="NO")return `<span class="chip2 no">NO</span>`;
+  return `<span class="chip2 cond">CONDITIONAL</span>`;
+}
+
+launchBtn.addEventListener("click",()=>{
+  if(!chosenFrom||!chosenTo)return;
+  const from=chosenFrom, to=chosenTo;
+  const out=document.getElementById("out");
+
+  if(from===to){
+    out.style.display="block";
+    out.innerHTML=`<div class="empty">Origin and destination are the same — pick two different countries.</div>`;
+    out.scrollIntoView({behavior:"smooth"}); return;
+  }
+
+  const d = DEST[to] ? DEST[to](from,purpose) : genericPlan(from,to,purpose);
+  const detailed = !!DEST[to];
+
+  const legs=[
+    {n:1,title:"Eligibility Check",tw:"do this first",body:`
+      <div class="kv"><span class="k">Visa needed?</span><span class="v">${pill(d.visa)}</span></div>
+      <div class="kv"><span class="k">Work now?</span><span class="v">${wpill(d.workNow)}</span></div>
+      <div class="kv"><span class="k">Likely visa</span><span class="v">${d.visaType}</span></div>
+      <div class="kv"><span class="k">Restrictions</span><span class="v">${d.restrict}</span></div>`},
+    {n:2,title:"Before You Leave",tw:from,body:`
+      <h4>Steps</h4><ul>${d.before.map(x=>`<li>${x}</li>`).join("")}</ul>
+      <div class="kv"><span class="k">Typical cost</span><span class="v">${d.beforeCost}</span></div>
+      <div class="kv"><span class="k">Processing</span><span class="v">${d.beforeTime}</span></div>
+      <h4>Common mistakes</h4><ul class="warn">${d.mistakes.map(x=>`<li>${x}</li>`).join("")}</ul>`},
+    {n:3,title:`Arrival in ${to}`,tw:"first 7–14 days",body:`
+      <ul>${d.arrival.map(s=>`<li><b>${s.t}</b> — ${s.d}</li>`).join("")}</ul>`},
+    {n:4,title:"Work Setup",tw:"",body:`
+      <div class="kv"><span class="k">Work now?</span><span class="v">${wpill(d.workNow)}</span></div>
+      <div class="kv"><span class="k">Entry salary</span><span class="v">${d.salary}</span></div>
+      <div class="kv"><span class="k">Fastest hiring</span><span class="v">${d.fastIndustries}</span></div>
+      <h4>Job platforms</h4><ul>${d.jobs.map(x=>`<li>${x}</li>`).join("")}</ul>
+      <h4>Documents to work</h4><ul>${d.jobDocs.map(x=>`<li>${x}</li>`).join("")}</ul>`},
+    {n:5,title:"Healthcare",tw:"",body:`
+      <div class="kv"><span class="k">System</span><span class="v">${d.healthType}</span></div>
+      <div class="kv"><span class="k">How to register</span><span class="v">${d.healthHow}</span></div>
+      <div class="kv"><span class="k">Monthly cost</span><span class="v">${d.healthCost}</span></div>
+      <div class="kv"><span class="k">Emergencies</span><span class="v">${d.healthEmrg}</span></div>`},
+    {n:6,title:"Housing",tw:"",body:`
+      <div class="kv"><span class="k">As a foreigner</span><span class="v">${d.housing}</span></div>
+      <div class="kv"><span class="k">Requirements</span><span class="v">${d.housingReq}</span></div>
+      <div class="kv"><span class="k">Average rent</span><span class="v">${d.rent}</span></div>
+      <h4>Where to search</h4><ul>${d.housingWhere.map(x=>`<li>${x}</li>`).join("")}</ul>`},
+    {n:7,title:"Cost of Living",tw:"",body:`
+      <div class="kv"><span class="k">Min monthly</span><span class="v">${d.costMin}</span></div>
+      <div class="kv"><span class="k">Avg rent</span><span class="v">${d.rent}</span></div>
+      <div class="kv"><span class="k">Food + transport</span><span class="v">${d.costFood}</span></div>
+      <h4>Hidden costs newcomers miss</h4><ul class="warn">${d.hidden.map(x=>`<li>${x}</li>`).join("")}</ul>`},
+    {n:8,title:"Risks & Mistakes",tw:"read carefully",body:`
+      <ul class="warn">${d.risks.map(x=>`<li>${x}</li>`).join("")}</ul>`}
+  ];
+
+  const items=["Visa / permit application","Documents prepared & (if needed) attested","Accommodation plan","Bank account setup","Healthcare registration","Job / income search started"];
+
+  out.innerHTML=`
+    <div class="res-head">
+      <div class="res-route">
+        <span class="fr">${FLAG[from]||"🏳️"} ${from}</span>
+        <span class="ln"><span class="plane">✈</span></span>
+        <span class="to">${FLAG[to]||"🏳️"} ${to}</span>
+      </div>
+    </div>
+    <div class="res-meta">
+      <span class="badge">Purpose: <b>${purpose}</b></span>
+      <span class="badge v-${d.visa}">Visa: <b>${d.visa}</b></span>
+      <span class="badge">Work now: <b>${d.workNow}</b></span>
+      <span class="badge">${detailed?'Detailed profile':'General guide — verify officially'}</span>
+    </div>
+    <div class="timeline">
+      ${legs.map(l=>`
+        <div class="step">
+          <div class="node">${ICON[l.n]}<span class="n">${l.n}</span></div>
+          <div class="panel ${l.n===1?'open':''}">
+            <div class="panel-h" onclick="this.parentElement.classList.toggle('open')">
+              <h3>${l.title}</h3>
+              ${l.tw?`<span class="tw">${l.tw}</span>`:''}
+              <svg class="car" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="panel-b">${l.body}</div>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div class="checklist">
+      <h3>Your relocation checklist</h3>
+      <p class="cs">Tap to tick off. Progress is for this session only.</p>
+      <div class="prog"><i id="bar"></i></div>
+      <div id="checks">
+        ${items.map((c,i)=>`<div class="chk" data-i="${i}">
+          <span class="cbox"><svg viewBox="0 0 24 24" fill="none" stroke="#05140e" stroke-width="3.5"><path d="M5 13l4 4L19 7"/></svg></span>
+          <span>${c}</span></div>`).join("")}
+      </div>
+    </div>`;
+  out.style.display="block";
+
+  const checks=out.querySelectorAll(".chk"), bar=out.querySelector("#bar");
+  function upd(){ bar.style.width=(out.querySelectorAll(".chk.done").length/checks.length*100)+"%"; }
+  checks.forEach(c=>c.addEventListener("click",()=>{c.classList.toggle("done");upd();}));
+
+  out.scrollIntoView({behavior:"smooth"});
+});
+</script>
+</body>
+</html>
